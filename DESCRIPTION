@@ -1,6 +1,6 @@
 Package: wallace
-Version: 0.6.1
-Date: 2017-01-18
+Version: 0.6.2
+Date: 2017-01-30
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Authors@R: c(person("Jamie M.", "Kass", email = "jkass@gradcenter.cuny.edu", role = c("aut", "cre")), 
@@ -24,6 +24,6 @@ URL: https://wallaceEcoMod.github.io
 Encoding: UTF-8
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2017-01-24 13:15:54 UTC; musasabi
+Packaged: 2017-01-31 17:42:42 UTC; musasabi
 Repository: CRAN
-Date/Publication: 2017-01-24 15:43:50
+Date/Publication: 2017-02-01 08:34:52
