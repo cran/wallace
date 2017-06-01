@@ -1,6 +1,4 @@
-[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badge/)   [![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.svg?v=103)](https://opensource.org/licenses/GPL-3.0/)  
-
-# Wallace (v0.6.3)
+# Wallace (v0.6.4)
 
 *Wallace* is a modular platform for reproducible modeling of species niches and distributions, written in R. The application guides users through a complete analysis, from the acquisition of data to visualizing model predictions on an interactive map, thus bundling complex workflows into a single, streamlined interface.
 
@@ -32,7 +30,7 @@ Please make sure you have installed the latest versions of both R (<a href= "htt
 ### Potential Issues
 
 #### rJava and Java versions
-*Wallace* uses the `rJava` package to run the program `maxent.jar`. The package `rJava` will not load properly if the version of Java on your computer (32-bit or 64-bit) does not match that of the R installation you are using. For example, if you are running 64-bit R, please make sure your Java is also 64-bit, or else `rJava` will be unable to load. Install the latest version of Java <a href="https://java.com/en/download/manual.jsp" target="_blank">here</a>, and 64-bit Windows users should make sure to select "Windows Offline (64-bit)". There is currently only a 64-bit download for Mac OS.
+*Wallace* uses the `rJava` package to run the program `maxent.jar`. The package `rJava` will not load properly if the version of Java on your computer (32-bit or 64-bit) does not match that of the R installation you are using. For example, if you are running 64-bit R, please make sure your Java is also 64-bit, or else `rJava` will be unable to load. Install the latest version of Java <a href="https://java.com/en/download/manual.jsp" target="_blank">here</a>, and 64-bit Windows users should make sure to select "Windows Offline (64-bit)". There is currently only a 64-bit download for Mac OS. For Mac users running OSX Yosemite and above with problems, see <a href="http://stackoverflow.com/questions/30738974/rjava-load-error-in-rstudio-r-after-upgrading-to-osx-yosemite" target="_blank">this StackOverflow post</a> for some tips on how to get `rJava` working again.
 
 #### Problems viewing tables
 If for some reason you are unable to view the tables in *Wallace*, please install (force if necessary) the development version of `htmlwidgets` by running this code: `devtools::install_github("ramnathv/htmlwidgets")`. You should be able to view tables now.
@@ -42,7 +40,7 @@ If PDF downloading of session code is not working for you, please follow the fol
      - Step 1: Download and Install MiKTeX from http://miktex.org/2.9/setup
      - Step 2: Run `Sys.getenv("PATH")` in R studio. This command returns the path where Rstudio is trying to find pdflatex.exe. In Windows (64-bit), it should return "C:\Program Files\MiKTeX 2.9\miktex\bin\x64\pdflatex.exe". If pdflatex.exe is not located in this location Rstudio gives this error code 41.
      - Step 3: To set this path variable run: `Sys.setenv(PATH=paste(Sys.getenv("PATH"),"C:/Program Files/MiKTeX 2.9/miktex/bin/x64/",sep=";"))`.
-     
+
 #### Windows Users: Only for Github installation
  If you are using Windows, please download and install <a href="https://cran.r-project.org/bin/windows/Rtools/" target="_blank">RTools</a> before installing the `devtools` package. After you install RTools, please make sure you add "C:\Rtools\bin" to your PATH variable (instructions <a href="http://stackoverflow.com/a/29480538/1274346" target="_blank">here</a>). Additionally, when using `devtools` on Windows machines, there is a known <a href="https://github.com/hadley/devtools/issues/1298" target="_blank">bug</a> that sometimes results in the inability to download all package dependencies. If this happens to you, please run [this script](wallace_pkgs.R) to install the packages and their dependencies directly from CRAN, and then run the code below.
 
