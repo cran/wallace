@@ -1,4 +1,6 @@
-# Wallace (v0.6.4)
+[![Build Status](https://travis-ci.org/wallaceEcoMod/wallace.svg?branch=master)](https://travis-ci.org/wallaceEcoMod/wallace) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![CRAN version](http://www.r-pkg.org/badges/version/wallace)](https://CRAN.R-project.org/package=wallace) [![downloads](http://cranlogs.r-pkg.org/badges/grand-total/wallace?color=orange)](http://cranlogs.r-pkg.org/badges/grand-total/wallace?color=orange)
+
+# Wallace (v1.0)
 
 *Wallace* is a modular platform for reproducible modeling of species niches and distributions, written in R. The application guides users through a complete analysis, from the acquisition of data to visualizing model predictions on an interactive map, thus bundling complex workflows into a single, streamlined interface.
 
@@ -49,4 +51,4 @@ Although the recommended way to install is through CRAN, if you are trying to in
  1. Download the zip file from the repository page.
  2. Unzip and open the wallace.Rproj file in RStudio.
  3. In the right-hand pane, click Build, then Build & Reload.
- 4. Type `wallace()` in the console and press Enter.
+ 4. Type `run_wallace()` in the console and press Enter.

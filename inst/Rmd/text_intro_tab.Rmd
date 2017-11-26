@@ -5,11 +5,11 @@ output: html_document
 
 #### WORKFLOW
 
-*Wallace* (v0.6.3) currently includes the following components and modules:  
+*Wallace* (v1.0) currently includes the following components and modules:  
 
 **1**: *Obtain Occurrence Data*  
 -Query Database  
--User-specified  
+-User-specified
 
 **2:** *Process Occurrence Data*  
 -Select Localities  
@@ -17,9 +17,11 @@ output: html_document
 
 **3:** *Obtain Environmental Data*  
 -WorldClim  
+-User-specified 
 
 **4:** *Process Environmental Data*  
--Select Study Region
+-Select Study Region  
+-User-specified 
 
 **5:** *Partition Occurrence Data*  
 -Non-spatial Partition  
