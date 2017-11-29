@@ -1,9 +1,9 @@
-bf57c5e5762d421e533ee5a6dcb1e9f5 *DESCRIPTION
+006f08fef755f5a242b040abe04899a6 *DESCRIPTION
 ebee6d06dd3e45b43bdd84a84d7fbb80 *NAMESPACE
-bc495b11c16aadd469cb1bff379341c0 *NEWS.md
-85acc28ed099f4e5950fcb650db7f737 *R/run_wallace.R
-182b0584945aef730a7f21996e1eaf3f *R/wallace-package.R
-5e39f5e098b76989cc005d0605f5d449 *README.md
+0426c9387286aab7868e3436efddfd26 *NEWS.md
+9fcc801675a1e8ef4324b0e8fdf6a6a7 *R/run_wallace.R
+91b2c934f0260aa423f55e5794ef684f *R/wallace-package.R
+a3bc5200930a7445fc18dd0378c5e937 *README.md
 aaaea066de93042c204914daea77a502 *inst/Rmd/gtext_comp1.Rmd
 606999cc1e3b083520e4f0b9e0f823cf *inst/Rmd/gtext_comp1_dbOccs.Rmd
 4d45bfe80b0c493488f2d8eede0c9ccf *inst/Rmd/gtext_comp1_userOccs.Rmd
@@ -33,8 +33,8 @@ cf689067ee29f8cb3da2205f87d726ba *inst/Rmd/gtext_comp8_mess.Rmd
 7363f82ac9ad51eda37c6111a855d11f *inst/Rmd/gtext_comp8_pjArea.Rmd
 d1cad4769be1171c3544767ec00e8121 *inst/Rmd/gtext_comp8_pjTime.Rmd
 a691240fda5b431d7cf7a7bdcd904b6f *inst/Rmd/text_about.Rmd
-985a9a6975f6e72957cc1f1d41b76f2e *inst/Rmd/text_intro.Rmd
-010b623af282db6efb239d167c9828d4 *inst/Rmd/text_intro_tab.Rmd
+333969eae2002355408bcd26588a00ed *inst/Rmd/text_intro.Rmd
+6bdae4c0a879dde7cab752248254cb37 *inst/Rmd/text_intro_tab.Rmd
 a82828a5c9d3fbba2969b10266a3772d *inst/Rmd/text_sessionCode.Rmd
 94cf9faa8c11825116ac91aecf2ab2c3 *inst/Rmd/userReport.Rmd
 5fcf35b2572e6fd5aa4ffbf6f60698d2 *inst/css/styles.css
@@ -64,7 +64,7 @@ c2522f6f80b0088c8c2cd94695244e90 *inst/shiny/modules/mod_c7_mxEvalPlots.R
 9204c93b493d44754c543061d6acde11 *inst/shiny/modules/mod_c8_projectTime.R
 9fa53b70fd7dfdca7e978f2dc3fbae39 *inst/shiny/modules/mod_threshPred.R
 acc637cffec045330745c62209d28009 *inst/shiny/server.R
-2d8184f341ff5956786d324dc524d93f *inst/shiny/ui.R
+e9385b2cf1a3c813c154f410b2ca2af6 *inst/shiny/ui.R
 614be5559e56e145b4013a81d45616b9 *inst/shiny/www/img/UConn_Logo.jpg
 c39a4d95fb93028caf167d5827ebe645 *inst/shiny/www/img/UConn_Logo.tiff
 dcb0803f58f211244c75ba965d4d915e *inst/shiny/www/img/aarhus.jpg
@@ -78,8 +78,8 @@ f5bfeef93222e468cbfb02306f6f0882 *inst/shiny/www/img/gc_logo.jpg
 33e8a9451d7c2fa915bb7fe602694d11 *inst/shiny/www/img/uah.jpg
 997fa1b97f2f9a042961b4123a5bb7fa *inst/shiny/www/img/ufg.jpg
 606c1e9c222e982bef5fe0f078dd091a *man/run_wallace.Rd
-04b094285fee8165b029c1d304697554 *man/wallace-package.Rd
-0bc0e6d73d915415ad646614afd59591 *tests/README.rtf
+8daa4059d79036a6f5c38698ff236069 *man/wallace-package.Rd
+42b5b5c511575f3fae9b615d89e798ab *tests/README.txt
 6d337bc8b009dab037557cade4823b6a *tests/testthat.R
 874bcd3ba7afc346c45729b10d1e759f *tests/testthat/run_test.R
 c62d253e35851bd2bfed20aeb623d56f *tests/testthat/run_wallace.R
