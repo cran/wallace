@@ -1,6 +1,10 @@
+# wallace 1.0.2
+- There is now an option to download all the response curves at once in the same png.
+- Local path to dismo's maxent.jar is now printed inside the log window to avoid failure to word wrap in some browsers.
+- Component 2 module "Select Occs" now informs user of the occIDs of points removed, not of the ones retained.
+
 # wallace 1.0.1
 - Removed button used for development.
-- Reverted to x.x.x version label.
 
 # wallace 1.0.0
 - Biggest change: reprogrammed most of the software to integrate shiny modules. Now each module is a separate script in /inst/shiny/modules that contains both UI and server logic. This should make authorship and integration of new modules much easier.
