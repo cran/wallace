@@ -1,6 +1,6 @@
 Package: wallace
-Version: 1.0.2
-Date: 2017-11-23
+Version: 1.0.3
+Date: 2018-01-31
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Authors@R: c(person("Jamie M.", "Kass", email = "jkass@gradcenter.cuny.edu", role = c("aut", "cre")),
@@ -10,11 +10,11 @@ Authors@R: c(person("Jamie M.", "Kass", email = "jkass@gradcenter.cuny.edu", rol
 	person("Cory", "Merow", email = "corymerow@gmail.com", role = "aut"),
 	person("Robert P.", "Anderson", email = "randerson@ccny.cuny.edu", role = "aut"))
 Author: Jamie M. Kass [aut, cre],
-    Bruno Vilela [aut],
-    Matthew E. Aiello-Lammens [aut],
-    Robert Muscarella [aut],
-    Cory Merow [aut],
-    Robert P. Anderson [aut]
+  Bruno Vilela [aut],
+  Matthew E. Aiello-Lammens [aut],
+  Robert Muscarella [aut],
+  Cory Merow [aut],
+  Robert P. Anderson [aut]
 Maintainer: Jamie M. Kass <jkass@gradcenter.cuny.edu>
 Depends: R (>= 3.2.1), shiny (>= 0.14.2), leaflet (>= 1.0.1)
 Imports: DT (>= 0.2), shinyjs, spocc (>= 0.5.4), RColorBrewer, dplyr,
@@ -27,6 +27,6 @@ Encoding: UTF-8
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown, testthat, RSelenium
 NeedsCompilation: no
-Packaged: 2017-12-15 05:00:29 UTC; musasabi
+Packaged: 2018-01-31 06:02:57 UTC; musasabi
 Repository: CRAN
-Date/Publication: 2017-12-15 05:09:15 UTC
+Date/Publication: 2018-01-31 06:11:07 UTC
