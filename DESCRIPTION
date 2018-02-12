@@ -1,6 +1,6 @@
 Package: wallace
-Version: 1.0.3
-Date: 2018-01-31
+Version: 1.0.4
+Date: 2018-02-12
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Authors@R: c(person("Jamie M.", "Kass", email = "jkass@gradcenter.cuny.edu", role = c("aut", "cre")),
@@ -27,6 +27,6 @@ Encoding: UTF-8
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown, testthat, RSelenium
 NeedsCompilation: no
-Packaged: 2018-01-31 06:02:57 UTC; musasabi
+Packaged: 2018-02-12 21:29:22 UTC; musasabi
 Repository: CRAN
-Date/Publication: 2018-01-31 06:11:07 UTC
+Date/Publication: 2018-02-12 21:39:46 UTC
