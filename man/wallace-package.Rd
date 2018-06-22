@@ -14,13 +14,13 @@ Please see the official website (\url{https://wallaceecomod.github.io/}) for mor
 \tabular{ll}{
 Package: \tab wallace\cr
 Type: \tab Package\cr
-Version: \tab 1.0.4\cr
-Date: \tab 2018-02-12\cr
+Version: \tab 1.0.0\cr
+Date: \tab 2017-11-23\cr
 License: \tab GNU 3.0\cr
 }
 }
 \references{
-Kass J.M., Vilela B., Aeillo-Lammens M.E., Muscarella R., Merow C., and Anderson R.P. (2018) \emph{Wallace}: A modular platform for reproducible ecological modeling. Version 1.0.4.
+Kass J.M., Vilela B., Aeillo-Lammens M.E., Muscarella R., Merow C., and Anderson R.P. (2017) \emph{Wallace}: A modular platform for reproducible ecological modeling. Version 1.0.0.
 }
 \author{
 \strong{Jamie M. Kass}\cr

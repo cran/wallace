@@ -69,10 +69,10 @@ shinyUI(tagList(
                                                                  uiTop('leaflet.extras', "Extra functionality for 'leaflet' Package"),
                                                                  HTML('<hr>'),
                                                                  selectOccs_UI('c2_selectOccs'),
-                                                                 strong("Select occurrences intersecting drawn polygon"), br(),
-                                                                 "(", HTML("<font color='blue'><b>NOTE</b></font>"), 
-                                                                 ': to begin drawing, click hexagon icon on map toolbar, 
-                                                                 and when complete, press "Finish" and then the "Select Occurrences" button)', br(), br(),
+                                                                 HTML('<font color="blue"><em>NOTE</em></font> 
+                                                                 : To <em>begin</em> drawing, click hexagon icon on map toolbar, 
+                                                                 and when complete, press "Finish" and then the "Select Occurrences" 
+                                                                 button. To <em>erase</em> the polygon, click the Trash icon and "Clear All".'), br(), br(),
                                                                  actionButton("goSelectOccs", "Select Occurrences")
                                                 ),
                                                 conditionalPanel("input.procOccSel == 'remID'",
@@ -226,6 +226,8 @@ shinyUI(tagList(
                                                                  bioclim_UI('c6_bioclim'),
                                                                  actionButton('goBioclim', 'Run')),
                                                 HTML('<hr>'),
+                                                downloadButton('dlEvalTbl', "Download CSV"),
+                                                HTML('<hr>'),
                                                 uiBottom("Jamie M. Kass, Robert Muscarella, Bruno Vilela, Robert P. Anderson", 'ENMeval', 'Robert Muscarella, Peter J. Galante, Mariano Soley-Guardia, Robert A. Boria,
                                                          Jamie M. Kass, Maria Uriarte, Robert P. Anderson'),
                                                 " | ", a("software note", href="http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12261/abstract", target = "_blank"), br(),
@@ -293,6 +295,10 @@ shinyUI(tagList(
                                                                  div('Module: Project to New Extent', id="mod"),
                                                                  uiTop('dismo', 'Species Distribution Modeling'),
                                                                  HTML('<hr>'),
+                                                                 HTML('<font color="blue"><em>NOTE</em></font> 
+                                                                 : To <em>begin</em> drawing, click hexagon icon on map toolbar, 
+                                                                      and when complete, press "Finish" and then the "Select Occurrences" 
+                                                                      button. To <em>erase</em> the polygon, click the Trash icon and "Clear All".'), br(), br(),
                                                                  strong("Project model to current extent"), br(), br(),
                                                                  actionButton('goProjectArea', "Project"), br(), br(),
                                                                  projectArea_UI('c8_projectArea')),
@@ -300,6 +306,10 @@ shinyUI(tagList(
                                                                  div('Module: Project to New Time', id="mod"),
                                                                  uiTop('dismo', 'Species Distribution Modeling'),
                                                                  HTML('<hr>'),
+                                                                 HTML('<font color="blue"><em>NOTE</em></font> 
+                                                                 : To <em>begin</em> drawing, click hexagon icon on map toolbar, 
+                                                                 and when complete, press "Finish" and then the "Select Occurrences" 
+                                                                 button. To <em>erase</em> the polygon, click the Trash icon and "Clear All".'), br(), br(),
                                                                  projectTime_UI('c8_projectTime'),
                                                                  strong("Project model to new time for current extent"), br(), br(),
                                                                  actionButton('goProjectTime', "Project")),
@@ -358,7 +368,7 @@ shinyUI(tagList(
                              conditionalPanel("input.tabs != 'rmd' & input.tabs != 0",
                                               tabsetPanel(id = 'main',
                                                           tabPanel('Map', leaflet::leafletOutput("map", height=600)),
-                                                          tabPanel('Occs Tbl', DT::dataTableOutput('occTbl')),
+                                                          tabPanel('Occs Tbl', br(), br(), DT::dataTableOutput('occTbl')),
                                                           tabPanel('Results', 
                                                                    conditionalPanel("input.tabs == 3", verbatimTextOutput('envsPrint')),
                                                                    conditionalPanel("input.tabs == 6", uiOutput('evalTbls')),

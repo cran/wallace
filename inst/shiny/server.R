@@ -142,13 +142,15 @@ shinyServer(function(input, output, session) {
   observe({
     if ((input$tabs == 2 & input$procOccSel == 'selOccs') | input$tabs == 8) {
       map %>% leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
-                                             rectangleOptions = FALSE, circleOptions = FALSE, 
-                                             markerOptions = FALSE)
+                                             rectangleOptions = FALSE, circleOptions = FALSE,
+                                             markerOptions = FALSE, circleMarkerOptions = FALSE,
+                                             editOptions = leaflet.extras::editToolbarOptions())
     } else {
       map %>% leaflet.extras::removeDrawToolbar(clearFeatures = TRUE)
     }
-    
-    req(input$map_draw_new_feature)
+  })
+  
+  observeEvent(input$map_draw_new_feature, {
     coords <- unlist(input$map_draw_new_feature$geometry$coordinates)
     xy <- matrix(c(coords[c(TRUE,FALSE)], coords[c(FALSE,TRUE)]), ncol=2)
     id <- input$map_draw_new_feature$properties$`_leaflet_id`
@@ -209,7 +211,7 @@ shinyServer(function(input, output, session) {
     req(rvs$occs)
     occsDT <- rvs$occs %>% dplyr::mutate(longitude = round(as.numeric(longitude), digits = 2),
                                          latitude = round(as.numeric(latitude), digits = 2))
-    occsDT %>% dplyr::select(name, occID, longitude:basisOfRecord)
+    occsDT %>% dplyr::select(name, occID, longitude:elevation)
   }, rownames = FALSE)
   
   # handle downloading of original GBIF records after cleaning
@@ -284,7 +286,7 @@ shinyServer(function(input, output, session) {
     content = function(file) {
       # thinned_rowNums <- as.numeric(thinOccs()$occID)
       # origThinned <- rvs$occsOrig[thinned_rowNums,]
-      write.csv(rvs$occs, file, row.names = FALSE)
+      write.csv(rvs$occs %>% dplyr::select(-pop), file, row.names = FALSE)
     }
   )
   
@@ -451,8 +453,8 @@ shinyServer(function(input, output, session) {
   ############################################# #
   
   # module Non-spatial Occurrence Partitions
+  partNsp.call <- callModule(partNsp_MOD, 'c5_partNsp', rvs)
   observeEvent(input$goPartNsp, {
-    partNsp.call <- callModule(partNsp_MOD, 'c5_partNsp', rvs)
     partNsp <- partNsp.call()
     # stop if no background mask
     req(rvs$bgMsk)
@@ -461,10 +463,10 @@ shinyServer(function(input, output, session) {
     map %>% comp5_map(rvs$occs, rvs$occsGrp)
     shinyjs::enable("dlPart")
   })
-  
+
   # module Spatial Occurrence Partitions
+  partSp.call <- callModule(partSp_MOD, 'c5_partSp', rvs)  
   observeEvent(input$goPartSp, {
-    partSp.call <- callModule(partSp_MOD, 'c5_partSp', rvs)
     partSp <- partSp.call()
     # stop if no background mask
     req(rvs$bgMsk)
@@ -512,20 +514,33 @@ shinyServer(function(input, output, session) {
     nBinsCols <- ncols - 16
     # render both full model and partition avg datatable, and individual partition datatable
     output$evalTbls <- renderUI({
-      tagList(
-        br(),
-        div("Full model and partition bin average evaluation statistics", id="stepText"), br(), br(),
-        DT::dataTableOutput('evalTbl'), br(), 
-        div("Individual partition bin evaluation statistics", id="stepText"), br(), br(),
-        DT::dataTableOutput('evalTblBins')  
+      tabsetPanel(
+        tabPanel("Evaluation", 
+                 tagList(
+                   br(),
+                   div("Full model and partition bin average evaluation statistics", id="stepText"), br(), br(),
+                   DT::dataTableOutput('evalTbl'), br(), 
+                   div("Individual partition bin evaluation statistics", id="stepText"), br(), br(),
+                   DT::dataTableOutput('evalTblBins')  
+                 )),
+        tabPanel("Lambdas",
+                 br(),
+                 div("Maxent Lambdas File", id="stepText"), br(), br(),
+                 verbatimTextOutput("lambdas")
+                 )
       )
+      
     })
     output$evalTbl <- DT::renderDataTable(modRes.round[,1:16], 
                                           options = list(scrollX = TRUE,
-                                                         sDom  = '<"top">rt<"bottom">'))
+                                                         sDom  = '<"top">rtp<"bottom">'))
     output$evalTblBins <- DT::renderDataTable(modRes.round[,17:(nBinsCols+16)], 
                                               options = list(scrollX = TRUE,
-                                                             sDom  = '<"top">rt<"bottom">'))
+                                                             sDom  = '<"top">rtp<"bottom">'))
+    output$lambdas <- renderPrint({
+      modCur <- rvs$mods[[rvs$modSel]]
+      modCur@lambdas
+    })
     shinyjs::show(id = "evalTblBins")
     
     # switch to Results tab
@@ -556,7 +571,7 @@ shinyServer(function(input, output, session) {
       )
     })
     output$evalTbl <- DT::renderDataTable(round(rvs$modRes, digits=3), options = list(scrollX = TRUE,
-                                                                                      sDom  = '<"top">rt<"bottom">'))
+                                                                                      sDom  = '<"top">rtp<"bottom">'))
     # switch to Results tab
     updateTabsetPanel(session, 'main', selected = 'Results')
     updateRadioButtons(session, "visSel", 
@@ -564,6 +579,20 @@ shinyServer(function(input, output, session) {
                                       "Map Prediction" = 'map'))
     shinyjs::hide(id = "evalTblBins")
   })
+  
+  # download for partitioned occurrence records csv
+  output$dlEvalTbl <- downloadHandler(
+    filename = function() {
+      if (rvs$comp6 == "bioclim") {
+        paste0(spName(), "_bioclim_evalTbl.csv")  
+      } else if (rvs$comp6 == "maxent") {
+        paste0(spName(), "_maxent_evalTbl.csv")  
+      }
+    },
+    content = function(file) {
+      write.csv(rvs$modRes, file, row.names = FALSE)
+    }
+  )
   
   ########################################### #
   ### COMPONENT 7: VISUALIZE MODEL RESULTS ####
@@ -574,7 +603,7 @@ shinyServer(function(input, output, session) {
     req(rvs$modPreds)
     n <- names(rvs$modPreds)
     modsNameList <- setNames(as.list(n), n)
-    selectInput('modSel', label = "Current model",
+    selectInput('modSel', label = "Current Model",
                 choices = modsNameList, selected = modsNameList[[1]])
   })
   
@@ -667,22 +696,26 @@ shinyServer(function(input, output, session) {
   # download for model predictions (restricted to background extent)
   output$dlPred <- downloadHandler(
     filename = function() {
-      ext <- switch(input$predFileType, raster = 'grd', ascii = 'asc', GTiff = 'tif', PNG = 'png')
+      ext <- switch(input$predFileType, raster = 'grd', ascii = 'asc', GTiff = 'tif', png = 'png')
       paste0(names(rvs$predCur), '.', ext)},
     content = function(file) {
-      if (input$predFileType == 'png') {
-        png(file)
-        raster::image(rvs$predCur)
-        dev.off()
-      } else if (input$predFileType == 'raster') {
-        fileName <- names(rvs$predCur)
-        tmpdir <- tempdir()
-        raster::writeRaster(rvs$predCur, file.path(tmpdir, fileName), format = input$predFileType, overwrite = TRUE)
-        fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
-        zip(zipfile=file, files=fs, extras = '-j')
+      if (require(rgdal)) {
+        if (input$predFileType == 'png') {
+          png(file)
+          raster::image(rvs$predCur)
+          dev.off()
+        } else if (input$predFileType == 'raster') {
+          fileName <- names(rvs$predCur)
+          tmpdir <- tempdir()
+          raster::writeRaster(rvs$predCur, file.path(tmpdir, fileName), format = input$predFileType, overwrite = TRUE)
+          fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
+          zip(zipfile=file, files=fs, extras = '-j')
+        } else {
+          r <- raster::writeRaster(rvs$predCur, file, format = input$predFileType, overwrite = TRUE)
+          file.rename(r@file@name, file)
+        }
       } else {
-        r <- raster::writeRaster(rvs$predCur, file, format = input$predFileType, overwrite = TRUE)
-        file.rename(r@file@name, file)
+        rvs %>% writeLog("Please install the rgdal package before downloading rasters.")
       }
     }
   )
@@ -696,6 +729,7 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$goProjectArea, {
     projArea.call <- projArea()
+    req(projArea.call)
     # stop if no model prediction
     req(rvs$predCur)
     # unpack
@@ -706,8 +740,14 @@ shinyServer(function(input, output, session) {
     
     rasVals <- c(rvs$predCurVals, rvs$projCurVals)
     rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
-    map %>% comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
-                      rasCols, "Predicted Suitability", 'rProj')
+    rasPal <- colorNumeric(rasCols, rvs$predCurVals, na.color='transparent')
+    
+    map %>% 
+      addRasterImage(rvs$predCur, colors = rasPal, opacity = 0.7, 
+                     group = 'c7', layerId = 'r1ID') %>%
+      comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
+                      rasCols, "Predicted Suitability", 
+                      addID = 'rProjArea', clearID = c('rProjArea', 'rProjTime', 'rProjMESS'))
     
     map %>% drawToolbarRefresh()
     
@@ -719,6 +759,7 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$goProjectTime, {
     projTime.call <- projTime()
+    req(projTime.call)
     # stop if no model prediction
     req(rvs$predCur)
     # unpack
@@ -731,7 +772,8 @@ shinyServer(function(input, output, session) {
     rasVals <- c(rvs$predCurVals, rvs$projCurVals)
     rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
     map %>% comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
-                      rasCols, "Predicted Suitability", 'rProj')
+                      rasCols, "Predicted Suitability", 
+                      addID = 'rProjTime', clearID = c('r1ID', 'rProjArea', 'rProjTime', 'rProjMESS'))
     
     map %>% drawToolbarRefresh()
     
@@ -743,6 +785,7 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$goEnvSimilarity, {
     rvs$mess <- envSimilarity()
+    req(rvs$mess)
     # stop if no model projection
     req(rvs$projCur)
     rvs$comp8.esim <- 'mess'
@@ -753,7 +796,8 @@ shinyServer(function(input, output, session) {
     
     rasVals <- rvs$messVals
     rasCols <- RColorBrewer::brewer.pal(n=11, name='Reds')
-    map %>% comp8_map(rvs$mess, rvs$polyPjXY, bgShpXY, rasVals, rasCols, "MESS Values")
+    map %>% comp8_map(rvs$mess, rvs$polyPjXY, bgShpXY, rasVals, rasCols, "MESS Values",
+                      addID = 'rProjMESS', clearID = c('r1ID', 'rProjArea', 'rProjTime', 'rProjMESS'))
     
     shinyjs::enable("dlProj")
   })
@@ -762,7 +806,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$goResetProj, {
     map %>%
       removeShape("projExt") %>%
-      removeImage("rProj")
+      removeImage(c("rProjArea", "rProjTime", "rProjMESS"))
     rvs %>% writeLog("Reset projection extent.")
   })
   
@@ -772,19 +816,23 @@ shinyServer(function(input, output, session) {
       ext <- switch(input$projFileType, raster = 'grd', ascii = 'asc', GTiff = 'tif', PNG = 'png')
       paste0(names(rvs$projCur), '.', ext)},
     content = function(file) {
-      if (input$projFileType == 'png') {
-        png(file)
-        raster::image(rvs$projCur)
-        dev.off()
-      } else if (input$projFileType == 'raster') {
-        fileName <- names(rvs$projCur)
-        tmpdir <- tempdir()
-        raster::writeRaster(rvs$projCur, file.path(tmpdir, fileName), format = input$projFileType, overwrite = TRUE)
-        fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
-        zip(zipfile=file, files=fs, extras = '-j')
+      if (require(rgdal)) {
+        if (input$projFileType == 'png') {
+          png(file)
+          raster::image(rvs$projCur)
+          dev.off()
+        } else if (input$projFileType == 'raster') {
+          fileName <- names(rvs$projCur)
+          tmpdir <- tempdir()
+          raster::writeRaster(rvs$projCur, file.path(tmpdir, fileName), format = input$projFileType, overwrite = TRUE)
+          fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
+          zip(zipfile=file, files=fs, extras = '-j')
+        } else {
+          r <- raster::writeRaster(rvs$projCur, file, format = input$projFileType, overwrite = TRUE)
+          file.rename(r@file@name, file)
+        }
       } else {
-        r <- raster::writeRaster(rvs$projCur, file, format = input$projFileType, overwrite = TRUE)
-        file.rename(r@file@name, file)
+        rvs %>% writeLog("Please install the rgdal package before downloading rasters.")
       }
     }
   )
@@ -857,3 +905,4 @@ shinyServer(function(input, output, session) {
     }
   )
 })
+

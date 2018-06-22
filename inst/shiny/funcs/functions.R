@@ -85,7 +85,7 @@ fileNameNoExt <- function(f) {
 
 # return the map center given the bounds
 mapCenter <- function(bounds) {
-  map_center <- c((bounds$west + bounds$east) / 2, (bounds$north + bounds$south) / 2)
+  map_center <- c(bounds$east - ((bounds$east - bounds$west) / 2), bounds$north - ((bounds$north - bounds$south) / 2))
   map_center <- round(map_center, digits=3)
   return(map_center)
 }
@@ -150,7 +150,24 @@ popUpContent <- function(x) {
     tags$strong(paste("occID:", x['occID'])),
     tags$br(),
     tags$strong(paste("Latitude:", lat)),
-    tags$strong(paste("Longitude:", lon))
+    tags$br(),
+    tags$strong(paste("Longitude:", lon)),
+    tags$br(),
+    tags$strong(paste("Year:", x['year'])),
+    tags$br(),
+    tags$strong(paste("Inst. Code:", x['institutionCode'])),
+    tags$br(),
+    tags$strong(paste("Basis of Record:", x['basisOfRecord'])),
+    tags$br(),
+    tags$strong(paste("Occurrence ID:", x['occurrenceID'])),
+    tags$br(),
+    tags$strong(paste("Country:", x['country'])),
+    tags$br(),
+    tags$strong(paste("State/Prov.:", x['stateProvince'])),
+    tags$br(),
+    tags$strong(paste("Locality:", x['locality'])),
+    tags$br(),
+    tags$strong(paste("Elevation:", x['elevation']))
   ))
 }
 
@@ -171,7 +188,7 @@ remEnvsValsNA <- function(rvs) {
     
     if (length(na.rowNums) > 0) {
       occs.notNA <- rvs$occs[-na.rowNums,]
-      rvs %>% writeLog(type = 'warning', 'Removed records without environmental values with occIDs: "',
+      rvs %>% writeLog(type = 'warning', 'Removed records without environmental values with occIDs: ',
                         paste(rvs$occs[na.rowNums,]$occID, collapse=', '), ".")
       return(occs.notNA)
     }
@@ -470,7 +487,7 @@ reverseLabels <- function(..., reverse_order = FALSE) {
 }
 
 comp8_map <- function(map, ras, polyXY, bgShpXY, rasVals, rasCols, 
-                      legTitle, clearID = NULL) {
+                      legTitle, addID, clearID = NULL) {
   
   # if thresholded, plot with two colors
   if (grepl('thresh', names(ras))) {
@@ -490,7 +507,7 @@ comp8_map <- function(map, ras, polyXY, bgShpXY, rasVals, rasCols,
     clearShapes() %>%
     removeImage(clearID) %>%
     addRasterImage(ras, colors = rasPal, opacity = 0.7, 
-                   group = 'c7', layerId = 'rProj') %>%
+                   group = 'c7', layerId = addID) %>%
     addPolygons(lng=polyXY[,1], lat=polyXY[,2], layerId="projExt", fill = FALSE,
                 weight=4, color="green", group='c8')
   
@@ -503,12 +520,10 @@ comp8_map <- function(map, ras, polyXY, bgShpXY, rasVals, rasCols,
 
 drawToolbarRefresh <- function(map) {
   map %>% leaflet.extras::removeDrawToolbar(clearFeatures = TRUE) %>%
-    leaflet.extras::addDrawToolbar(
-      targetGroup='draw',
-      polylineOptions = FALSE,
-      rectangleOptions = FALSE,
-      circleOptions = FALSE,
-      markerOptions = FALSE)
+    leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
+                                   rectangleOptions = FALSE, circleOptions = FALSE,
+                                   markerOptions = FALSE, circleMarkerOptions = FALSE,
+                                   editOptions = leaflet.extras::editToolbarOptions())
 }
 
 ####################### #
