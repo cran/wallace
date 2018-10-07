@@ -38,8 +38,7 @@ Website: \url{https://mlammens.github.io/})
 \strong{Robert Muscarella}\cr
 (email: \email{bob.muscarella@gmail.com};
 Website: \url{https://bobmuscarella.weebly.com/})
-
-\strong{Cory Merow}\cr
+#' @author \strong{Cory Merow}\cr
 (email: \email{cory.merow@gmail.com};
 Website: \url{https://cmerow.github.io/})
 

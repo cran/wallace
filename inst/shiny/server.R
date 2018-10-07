@@ -19,19 +19,19 @@ shinyServer(function(input, output, session) {
   rvs <- reactiveValues(logs = logInit(), comp1='', comp2='', comp3='', comp4.shp='', comp4.buf=0,
                         comp5='', comp6='', comp7.type='', comp7='', comp8.pj='', comp8.esim='')
   
-  observeEvent(input$load, {
-    f <- read.csv('/Users/musasabi/Downloads/Puma concolor_partitioned_occs(1).csv')
-    rvs$occs <- f %>% dplyr::filter(name != 'background')
-    rvs$occs$pop <- unlist(apply(rvs$occs, 1, popUpContent))
-    rvs$occsGrp <- rvs$occs$group
-    rvs$bgPts <- f %>% dplyr::filter(name == 'background')
-    rvs$bgGrp <- rvs$bgPts$group
-    rvs$bgShp <- rgdal::readOGR('/Users/musasabi/Downloads', 'mcp')
-    rvs$bgPts <- rvs$bgPts %>% dplyr::select(longitude, latitude)
-    rvs$envs <- raster::stack(list.files('/Users/musasabi/Documents/github/wallace/inst/shiny/wc10', 'bil$', full.names=TRUE))
-    rvs$bgMsk <- raster::stack(list.files('/Users/musasabi/Downloads/mskEnvs', 'gri$', full.names = TRUE))  
-    print('HACKING DONE')
-  })
+  # observeEvent(input$load, {
+  #   f <- read.csv('C:/Users/gepin/Desktop/maxnet_files/Canis lupus_partitioned_occs.csv')
+  #   rvs$occs <- f %>% dplyr::filter(name != 'background')
+  #   rvs$occs$pop <- unlist(apply(rvs$occs, 1, popUpContent))
+  #   rvs$occsGrp <- rvs$occs$group
+  #   rvs$bgPts <- f %>% dplyr::filter(name == 'background')
+  #   rvs$bgGrp <- rvs$bgPts$group
+  #   rvs$bgShp <- rgdal::readOGR('C:/Users/gepin/Desktop/maxnet_files/box.shp')
+  #   rvs$bgPts <- rvs$bgPts %>% dplyr::select(longitude, latitude)
+  #   rvs$envs <- raster::stack(list.files('C:/Users/gepin/Desktop/maxnet_files/bio_10m_bil', 'bil$', full.names=TRUE))
+  #   rvs$bgMsk <- raster::stack(list.files('C:/Users/gepin/Desktop/maxnet_files/mskEnvs', 'tif$', full.names = TRUE))  
+  #   print('HACKING DONE')
+  # })
   
   # for RMD
   curWD <- getwd()
@@ -170,7 +170,7 @@ shinyServer(function(input, output, session) {
   # module Query Database
   dbOccs <- callModule(queryDb_MOD, 'c1_queryDb', rvs)
   
-  spName <- reactive(as.character(rvs$occs$name[1]))
+  spName <- reactive(rvs$spName)
   
   observeEvent(input$goDbOccs, {
     rvs$occs <- dbOccs()
@@ -202,6 +202,7 @@ shinyServer(function(input, output, session) {
       map_plotLocs(rvs$occs) %>%
       zoom2Occs(rvs$occs)
     shinyjs::disable("dlDbOccs")
+    shinyjs::enable("dlRMD")
   })
   
   # TABLE
@@ -218,7 +219,7 @@ shinyServer(function(input, output, session) {
   output$dlDbOccs <- downloadHandler(
     filename = function() {paste0(formatSpName(spName()), '_original_', rvs$occDb, ".csv")},
     content = function(file) {
-      write.csv(rvs$occsOrig, file, row.names=FALSE)
+      write_csv_robust(rvs$occsOrig, file, row.names=FALSE)
     }
   )
   
@@ -237,6 +238,7 @@ shinyServer(function(input, output, session) {
       clearMarkers() %>%
       map_plotLocs(rvs$occs) %>%
       zoom2Occs(rvs$occs)
+    shinyjs::enable("dlProcOccs")
   })
   
   # module Select Occurrences on Map
@@ -282,11 +284,13 @@ shinyServer(function(input, output, session) {
   
   # handle download for thinned records csv
   output$dlProcOccs <- downloadHandler(
-    filename = function() {paste0(formatSpName(spName()), "_processed_occs.csv")},
+    filename = function() {ifelse(rvs$comp1 == 'csv', 
+                                  "user_processed_occs.csv", 
+                                  paste0(formatSpName(spName()), "_processed_occs.csv"))},
     content = function(file) {
       # thinned_rowNums <- as.numeric(thinOccs()$occID)
       # origThinned <- rvs$occsOrig[thinned_rowNums,]
-      write.csv(rvs$occs %>% dplyr::select(-pop), file, row.names = FALSE)
+      write_csv_robust(rvs$occs %>% dplyr::select(-pop), file, row.names = FALSE)
     }
   )
   
@@ -326,6 +330,12 @@ shinyServer(function(input, output, session) {
     rvs$comp3 <- 'bc'
     # remove occurrences with NA values for variables
     rvs$occs <- remEnvsValsNA(rvs)
+    # MAPPING - Plot the remaining occs after of removing NA
+    map %>%
+      clearMarkers() %>%
+      clearControls() %>%
+      map_plotLocs(rvs$occs) %>%
+      zoom2Occs(rvs$occs)
     # switch to Results tab
     updateTabsetPanel(session, 'main', selected = 'Results')
     # enable download button
@@ -347,6 +357,11 @@ shinyServer(function(input, output, session) {
     updateRadioButtons(session, "projSel", 
                        choices = list("Project to New Extent" = 'projArea',
                                       "Calculate Environmental Similarity" = 'mess'))
+    # MAPPING - Plot the remaining occs after of removing NA
+    map %>%
+      clearMarkers() %>%
+      map_plotLocs(rvs$occs) %>%
+      zoom2Occs(rvs$occs)
     # switch to Results tab
     updateTabsetPanel(session, 'main', selected = 'Results')
   })
@@ -429,7 +444,8 @@ shinyServer(function(input, output, session) {
     filename = function() {'mskEnvs.zip'},
     content = function(file) {
       tmpdir <- tempdir()
-      setwd(tempdir())
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
       type <- input$bgMskFileType
       nm <- names(rvs$bgMsk)
       
@@ -441,7 +457,7 @@ shinyServer(function(input, output, session) {
       if (ext == 'grd') {
         fs <- c(fs, paste0('msk_', nm, '.gri'))
       }
-      zip(zipfile=file, files=fs)
+      zip::zip(zipfile=file, files=fs)
       if (file.exists(paste0(file, ".zip"))) {file.rename(paste0(file, ".zip"), file)}
     },
     contentType = "application/zip"
@@ -485,7 +501,7 @@ shinyServer(function(input, output, session) {
       occs.bg.bind <-rbind(rvs$occs[,1:3], bg.bind)
       all.bind <- cbind(occs.bg.bind, c(rvs$occsGrp, rvs$bgGrp))
       names(all.bind)[4] <- "group"
-      write.csv(all.bind, file, row.names = FALSE)
+      write_csv_robust(all.bind, file, row.names = FALSE)
     }
   )
   
@@ -539,7 +555,11 @@ shinyServer(function(input, output, session) {
                                                              sDom  = '<"top">rtp<"bottom">'))
     output$lambdas <- renderPrint({
       modCur <- rvs$mods[[rvs$modSel]]
-      modCur@lambdas
+      if (rvs$algMaxent == "maxnet") {
+        modCur$betas
+      } else if (rvs$algMaxent == "maxent.jar") {
+        modCur@lambdas
+      }
     })
     shinyjs::show(id = "evalTblBins")
     
@@ -590,7 +610,7 @@ shinyServer(function(input, output, session) {
       }
     },
     content = function(file) {
-      write.csv(rvs$modRes, file, row.names = FALSE)
+      write_csv_robust(rvs$modRes, file, row.names = FALSE)
     }
   )
   
@@ -614,7 +634,11 @@ shinyServer(function(input, output, session) {
     # from the lambdas file (the predictors that were not removed via regularization)
     if (rvs$comp6 == "maxent") {
       modCur <- rvs$mods[[rvs$modSel]]
-      nonZeroCoefs <- mxNonzeroCoefs(modCur)
+      if (rvs$algMaxent == "maxnet") {
+        nonZeroCoefs <- mxNonzeroCoefs(modCur, maxentVersion = "maxnet")
+      } else if(rvs$algMaxent == "maxent.jar") {
+        nonZeroCoefs <- mxNonzeroCoefs(modCur, maxentVersion = "maxent.jar")
+      }
       envsNames <- names(rvs$bgMsk[[nonZeroCoefs]])
       rvs$mxNonZeroCoefs <- envsNames
     } else {
@@ -659,8 +683,9 @@ shinyServer(function(input, output, session) {
       mapPreds <- callModule(mapPreds_MOD, 'c7_mapPreds', rvs)
     }
     # stop if mapPreds is NULL
-    req(mapPreds())
     rvs$predCur <- mapPreds()
+    req(rvs$predCur)
+    
     # stop if no models
     req(rvs$mods)
     rvs$predCurVals <- getVals(rvs$predCur, rvs$comp7.type)
@@ -684,7 +709,7 @@ shinyServer(function(input, output, session) {
       clearMarkers() %>% clearImages() %>% clearShapes() %>%
       map_plotLocs(rvs$occs) %>%
       addRasterImage(rvs$predCur, colors = rasPal, opacity = 0.7, 
-                     group = 'c7', layerId = 'r1ID')
+                     group = 'c7', layerId = 'r1ID', project = TRUE)
     for (shp in bgShpXY()) {
       map %>%
         addPolygons(lng=shp[,1], lat=shp[,2], fill = FALSE,
@@ -696,9 +721,10 @@ shinyServer(function(input, output, session) {
   # download for model predictions (restricted to background extent)
   output$dlPred <- downloadHandler(
     filename = function() {
-      ext <- switch(input$predFileType, raster = 'grd', ascii = 'asc', GTiff = 'tif', png = 'png')
+      ext <- switch(input$predFileType, raster = 'zip', ascii = 'asc', GTiff = 'tif', png = 'png')
       paste0(names(rvs$predCur), '.', ext)},
     content = function(file) {
+      # browser()
       if (require(rgdal)) {
         if (input$predFileType == 'png') {
           png(file)
@@ -708,8 +734,10 @@ shinyServer(function(input, output, session) {
           fileName <- names(rvs$predCur)
           tmpdir <- tempdir()
           raster::writeRaster(rvs$predCur, file.path(tmpdir, fileName), format = input$predFileType, overwrite = TRUE)
-          fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
-          zip(zipfile=file, files=fs, extras = '-j')
+          owd <- setwd(tmpdir)
+          fs <- paste0(fileName, c('.grd', '.gri'))
+          zip::zip(zipfile=file, files=fs)
+          setwd(owd)
         } else {
           r <- raster::writeRaster(rvs$predCur, file, format = input$predFileType, overwrite = TRUE)
           file.rename(r@file@name, file)
@@ -768,7 +796,7 @@ shinyServer(function(input, output, session) {
     req(rvs$projCur)
     rvs$projCurVals <- getVals(rvs$projCur, rvs$comp7.type)
     rvs$comp8.pj <- 'time'
-    
+    raster::crs(rvs$projCur) <- raster::crs(rvs$bgMsk)
     rasVals <- c(rvs$predCurVals, rvs$projCurVals)
     rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
     map %>% comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
@@ -793,9 +821,21 @@ shinyServer(function(input, output, session) {
     rvs$mess[is.infinite(rvs$mess)] <- NA
     # extract values
     rvs$messVals <- getVals(rvs$mess)
-    
     rasVals <- rvs$messVals
-    rasCols <- RColorBrewer::brewer.pal(n=11, name='Reds')
+    # define colorRamp for mess
+    if (max(rasVals) > 0 & min(rasVals) < 0) {
+      rc1 <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')),
+                              space = "Lab")(abs(min(rasVals)))
+      rc2 <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'), 
+                              space = "Lab")(max(rasVals))
+      rasCols <- c(rc1, rc2)
+    } else if (max(rasVals) < 0 & min(rasVals) < 0) {
+      rasCols <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')), 
+                                  space = "Lab")(abs(min(rasVals)))
+    } else if (max(rasVals) > 0 & min(rasVals) > 0) {
+      rasCols <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'),
+                                  space = "Lab")(max(rasVals))
+    }
     map %>% comp8_map(rvs$mess, rvs$polyPjXY, bgShpXY, rasVals, rasCols, "MESS Values",
                       addID = 'rProjMESS', clearID = c('r1ID', 'rProjArea', 'rProjTime', 'rProjMESS'))
     
@@ -813,7 +853,7 @@ shinyServer(function(input, output, session) {
   # download for model predictions (restricted to background extent)
   output$dlProj <- downloadHandler(
     filename = function() {
-      ext <- switch(input$projFileType, raster = 'grd', ascii = 'asc', GTiff = 'tif', PNG = 'png')
+      ext <- switch(input$projFileType, raster = 'zip', ascii = 'asc', GTiff = 'tif', PNG = 'png')
       paste0(names(rvs$projCur), '.', ext)},
     content = function(file) {
       if (require(rgdal)) {
@@ -825,8 +865,10 @@ shinyServer(function(input, output, session) {
           fileName <- names(rvs$projCur)
           tmpdir <- tempdir()
           raster::writeRaster(rvs$projCur, file.path(tmpdir, fileName), format = input$projFileType, overwrite = TRUE)
-          fs <- file.path(tmpdir, paste0(fileName, c('.grd', '.gri')))
-          zip(zipfile=file, files=fs, extras = '-j')
+          owd <- setwd(tmpdir)
+          fs <- paste0(fileName, c('.grd', '.gri'))
+          zip::zip(zipfile=file, files=fs)
+          setwd(owd)
         } else {
           r <- raster::writeRaster(rvs$projCur, file, format = input$projFileType, overwrite = TRUE)
           file.rename(r@file@name, file)
@@ -867,22 +909,60 @@ shinyServer(function(input, output, session) {
       }
       bcSels <- printVecAsis(rvs$bcSels)
       exp <- knitr::knit_expand("Rmd/userReport.Rmd", 
-                                curWD=curWD, spName=spName(), 
-                                dbName=rvs$occDb, occNum=rvs$occNum, occsCSV=rvs$userCSV$name,  # comp 1
-                                thinDist=rvs$thinDist, occsRemoved=rvs$occsRem, occsSelX=polySelX, occsSelY=polySelY,  # comp 2
-                                bcRes=rvs$bcRes, bcLat=rvs$bcLat, bcLon=rvs$bcLon, # comp 3
-                                userEnvs=printVecAsis(rvs$userEnvs$name), bcSels=bcSels, # comp 3
-                                bgSel=rvs$comp4.shp, bgBuf=rvs$comp4.buf, bgUserCSVpath=rvs$userBgShp$datapath,  # comp 4
-                                bgUserCSVname=rvs$userBgShp$name, bgUserShpPath=rvs$bgUserShpPar$dsn,  # comp 4 
-                                bgUserShpName=rvs$bgUserShpPar$layer, bgPtsNum=rvs$bgPtsNum, # comp 4
-                                partSel=rvs$partSel, kfolds=rvs$kfolds, aggFact=rvs$aggFact,  # comp 5
-                                enmSel=rvs$comp6, rms1=rvs$rms[1], rms2=rvs$rms[2], rmsStep=rvs$rmsStep, # comp 6
-                                fcs=printVecAsis(rvs$fcs),  # comp 6
-                                modSel=rvs$modSel, mxNonZeroCoefs=printVecAsis(rvs$mxNonZeroCoefs), envSel=rvs$envSel,  # comp 7
-                                bcPlot1=rvs$bcPlotsPar$bc1, bcPlot2=rvs$bcPlotsPar$bc2, bcPlotP=rvs$bcPlotsPar$p,  # comp 7
-                                mxEvalSel=rvs$mxEvalSel, predType=rvs$comp7.type, comp7.thresh=rvs$comp7.thr, # comp 7 
-                                occsPjX=polyPjX, occsPjY=polyPjY, pjRCP=rvs$pjTimePar$rcp, pjGCM=rvs$pjTimePar$gcm,  # comp 8
-                                pjYear=rvs$pjTimePar$year, comp8.thresh=rvs$comp8.thr)  # comp 8
+                                curWD = curWD, 
+                                # comp 1
+                                spName = spName(), 
+                                dbName = rvs$occDb, 
+                                occNum = rvs$occNum, 
+                                occsCSV = rvs$userCSV$name,
+                                # comp 2
+                                thinDist = rvs$thinDist, 
+                                occsRemoved = rvs$occsRem,
+                                occsSelX = polySelX,
+                                occsSelY = polySelY,  
+                                # comp 3
+                                bcRes = rvs$bcRes, 
+                                bcLat = rvs$bcLat, 
+                                bcLon = rvs$bcLon,
+                                userEnvs = printVecAsis(rvs$userEnvs$name), 
+                                bcSels = bcSels, 
+                                # comp 4
+                                bgSel = rvs$comp4.shp, 
+                                bgBuf = rvs$comp4.buf, 
+                                #bgUserCSVname = rvs$bgUserCSVname,
+                                #bgUserCSVpath = rvs$bgUserCSVpath,
+                                bgUserShpPath = rvs$bgUserShpPar$dsn, 
+                                bgUserShpName = rvs$bgUserShpPar$layer, 
+                                bgPtsNum = rvs$bgPtsNum,
+                                # comp 5
+                                partSel = rvs$partSel, 
+                                kfolds = rvs$kfolds, 
+                                aggFact = rvs$aggFact,
+                                # comp 6
+                                enmSel = rvs$comp6,
+                                algMaxent = rvs$algMaxent,
+                                clamp = rvs$clamp,
+                                rms1 = rvs$rms[1],
+                                rms2 = rvs$rms[2],
+                                rmsStep = rvs$rmsStep,
+                                fcs = printVecAsis(rvs$fcs),
+                                # comp 7
+                                modSel = rvs$modSel, 
+                                mxNonZeroCoefs = printVecAsis(rvs$mxNonZeroCoefs),
+                                envSel = rvs$envSel,
+                                bcPlot1 = rvs$bcPlotsPar$bc1, 
+                                bcPlot2 = rvs$bcPlotsPar$bc2,
+                                bcPlotP = rvs$bcPlotsPar$p,
+                                mxEvalSel = rvs$mxEvalSel,
+                                predType = rvs$comp7.type,
+                                comp7.thresh = rvs$comp7.thr,
+                                # comp 8 
+                                occsPjX = polyPjX,
+                                occsPjY = polyPjY,
+                                pjRCP = rvs$pjTimePar$rcp,
+                                pjGCM = rvs$pjTimePar$gcm,
+                                pjYear = rvs$pjTimePar$year,
+                                comp8.thresh = rvs$comp8.thr)
       # temporarily switch to the temp dir, in case you do not have write
       # permission to the current working directory
       owd <- setwd(tempdir())
