@@ -47,7 +47,12 @@ maxent_MOD <- function(input, output, session, rvs) {
     }
     
     if (is.null(input$fcs)) {
-      rvs %>% writeLog(type = 'error', 'Select feature classes first.')
+      rvs %>% writeLog(type = 'warning', 'Select feature classes first.')
+      return()
+    }
+    
+    if (input$rmsStep <= 0) {
+      rvs %>% writeLog(type = 'warning', "Please specify a positive multiplier step value that is greater than 0.")
       return()
     }
     
@@ -86,23 +91,19 @@ maxent_MOD <- function(input, output, session, rvs) {
     }
    
     occs.xy <- rvs$occs %>% dplyr::select(longitude, latitude)
-    
-    e <- ENMeval::ENMevaluate(occs.xy, rvs$bgMsk, bg.coords = rvs$bgPts,
+    colnames(rvs$bgPts) <- names(occs.xy)
+    e <- ENMeval::ENMevaluate(occ = occs.xy, env = rvs$bgMsk, bg.coords = rvs$bgPts,
                               RMvalues = rms, fc = input$fcs, method = 'user', 
                               occ.grp = rvs$occsGrp, bg.grp = rvs$bgGrp, 
                               bin.output = TRUE, clamp = rvs$clamp,
                               progbar = FALSE, updateProgress = updateProgress,
                               algorithm = input$algMaxent)
     
-    names(e@models) <- e@results$settings
-    
     if (rvs$clamp == T | rvs$algMaxent == "maxent.jar") {
       rvs %>% writeLog("Maxent ran successfully using", input$algMaxent, "and output evaluation results for", nrow(e@results), "clamped models.")
     } else if (rvs$clamp == F) {
       rvs %>% writeLog("Maxent ran successfully using", input$algMaxent, "and output evaluation results for", nrow(e@results), "unclampled models.")
     }
-    
-    
     return(e)
   })
 }

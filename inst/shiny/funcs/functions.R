@@ -230,69 +230,6 @@ comp5_map <- function(map, occs, occsGrp) {
 ####################### #
 # COMP 6 ####
 ####################### #
-
-BioClim_eval <- function (occs, bg.pts, occ.grp, bg.grp, env) {
-  
-  # RUN FULL DATA MODEL
-  full.mod <- dismo::bioclim(env, occs)
-  pred <- dismo::predict(env, full.mod)
-  occPredVals <- matrix(dismo::predict(full.mod, full.mod@presence))
-  colnames(occPredVals) <- 'BIOCLIM'
-  
-  # CREATE HOLDERS FOR RESULTS
-  AUC.TEST <- double()
-  AUC.DIFF <- double()
-  OR10 <- double()
-  ORmin <- double()
-  
-  # SET NUMBER OF TEST BINS
-  nk <- length(unique(occ.grp))
-  
-  for (k in 1:nk) {
-    
-    # SPLIT TEST AND TRAIN DATA
-    test.pts <- occs[occ.grp == k, ]
-    train.pts <- occs[occ.grp != k, ]
-    backg.pts <- bg.pts[bg.grp != k, ]
-    mod <- dismo::bioclim(env, train.pts)
-    
-    # GET AUC METRICS
-    AUC.TEST[k] <- dismo::evaluate(p=test.pts, a=backg.pts, mod=mod, x=env)@auc
-    AUC.TRAIN <- dismo::evaluate(p=train.pts, a=backg.pts, mod=mod, x=env)@auc
-    AUC.DIFF[k] <- max(0, AUC.TRAIN - AUC.TEST[k])
-    
-    # GET PREDICTED VALUES AT OCCURRENCES FOR OMISSION RATE STATS
-    train.pred <- dismo::predict(env, mod)
-    p.train <- raster::extract(train.pred, train.pts)
-    p.test <- raster::extract(train.pred, test.pts)
-    
-    # FIND THRESHOLD FOR OR10
-    if (nrow(train.pts) < 10) {
-      n90 <- floor(nrow(train.pts) * 0.9)
-    } else {
-      n90 <- ceiling(nrow(train.pts) * 0.9)
-    }
-    
-    # GET OMISSION RATE STATS
-    train.thr.10 <- rev(sort(p.train))[n90]
-    OR10[k] <- mean(p.test < train.thr.10)
-    ORmin[k] <- mean(p.test < min(p.train))
-  }
-  
-  # COMPILE AND SUMMARIZE RESULTS
-  stats <- as.data.frame(rbind(AUC.TEST, AUC.DIFF, ORmin, OR10))
-  stats <- cbind(apply(stats, 1, mean), ENMeval::corrected.var(stats, nk), stats)
-  colnames(stats) <- c("Mean", "Variance", paste("Bin", 1:nk))
-  rownames(stats) <- c("test.AUC", "diff.AUC","test.orMTP","test.or10pct")
-  
-  preds <- raster::stack(pred)
-  names(preds) <- "BIOCLIM"
-  
-  # THIS FORMAT FOR RETURNED DATA ATTEMPTS TO MATCH WHAT HAPPENS IN WALLACE ALREADY FOR ENMEVAL.
-  return(list(models=list(BIOCLIM=full.mod), results=stats, 
-              predictions=preds, occVals=occPredVals))
-}
-
 thresh <- function(modOccVals, type) {
   # remove all NA
   modOccVals <- na.omit(modOccVals)
@@ -315,65 +252,18 @@ thresh <- function(modOccVals, type) {
 # COMP 7 ####
 ####################### #
 
-# plot ENMeval stats based on user selection ("value")
-evalPlot <- function(res, value) {
-  fc <- length(unique(res$features))
-  col <- rainbow(fc)
-  rm <- length(unique(res$rm))
-  xlab <- "Regularization Multiplier"
-  
-  if (value != "delta.AICc") {
-    variance <- gsub('avg', 'var', value)
-  } else {
-    variance <- NULL
-  }
-  
-  y <- res[,value]
-  
-  if (value != "delta.AICc") {
-    v <- res[,variance]
-    # ylim <- c(min(y-v), max(y+v))
-    ylim <- c(0, 1)
-  } else {
-    ylim <- c(min(y, na.rm=TRUE), max(y, na.rm=TRUE))
-  }
-  
-  
-  plot(res$rm, y, col='white', ylim=ylim, ylab=value, xlab=xlab, axes=F, cex.lab=1.5)
-  if (value=="delta.AICc") abline(h=2, lty=3)
-  axis(1, at= unique(res$rm))
-  axis(2)
-  box()
-  for (j in 1:length(unique(res$features))){
-    s <- ((fc*rm)-fc+j)
-    points(res$rm[seq(j, s, fc)], y[seq(j, s, fc)], type="l", col=col[j])
-    if (!is.null(variance)) {
-      arrows(res$rm[seq(j, s, fc)],
-             y[seq(j, s, fc)] + v[seq(j, s, fc)],
-             res$rm[seq(j, s, fc)],
-             y[seq(j, s, fc)] - v[seq(j, s, fc)],
-             code=3, length=.05, angle=90, col=col[j])
-    }
-  }
-  points(res$rm, y, bg=col, pch=21)
-  legend("topright", legend=unique(res$features), pt.bg=col, pch=21, bg='white', cex=1, ncol=2)
-}
-
-evalPlots <- function(results) {
-  par(mfrow=c(3,2))
-  fc <- length(unique(results$features))
-  col <- rainbow(fc)
-  rm <- length(unique(results$rm))
-  plot(rep(1, times=fc), 1:fc, ylim=c(.5,fc+1), xlim=c(0,3), axes=F, ylab='', xlab='', cex=2, pch=21, bg=col)
-  segments(rep(.8, times=fc), 1:fc, rep(1.2, times=fc), 1:fc, lwd=1, col=col)
-  points(rep(1, times=fc), 1:fc, ylim=c(-1,fc+2), cex=2, pch=21, bg=col)
-  text(x=rep(1.3, times=fc), y=1:fc, labels=unique(results$features), adj=0)
-  text(x=1, y=fc+1, labels="Feature Classes", adj=.20, cex=1.3, font=2)
-  ENMeval::eval.plot(results, legend=FALSE, value="delta.AICc")
-  ENMeval::eval.plot(results, legend=FALSE, value="Mean.AUC", variance="Var.AUC")
-  ENMeval::eval.plot(results, legend=FALSE, value="Mean.AUC.DIFF", variance="Var.AUC.DIFF")
-  ENMeval::eval.plot(results, legend=FALSE, value="Mean.ORmin", variance="Var.ORmin")
-  ENMeval::eval.plot(results, legend=FALSE, value="Mean.OR10", variance="Var.OR10")
+predictMaxnet <- function(mod, envs, clamp, type) {
+  requireNamespace("maxnet", quietly = TRUE)
+  envs.n <- raster::nlayers(envs)
+  envs.pts <- raster::getValues(envs) %>% as.data.frame()
+  mxnet.p <- predict(mod, envs.pts, type = type,
+                     clamp = clamp)
+  envs.pts[as.numeric(row.names(mxnet.p)), "pred"] <- mxnet.p
+  pred <- raster::rasterFromXYZ(cbind(raster::coordinates(envs),
+                                      envs.pts$pred),
+                                res = raster::res(envs),
+                                crs = raster::crs(envs))
+  return(pred)
 }
 
 # borrowed from the plot method for bioclim in dismo v.1.1-1
@@ -396,7 +286,7 @@ bc.plot <- function(x, a=1, b=2, p=0.9, ...) {
   p <- min(1,  max(0, p))
   if (p > 0.5) p <- 1 - p
   p <- p / 2
-  prd <- dismo::predict(x, d)
+  prd <- dismo::predict(x, d, useC = FALSE)
   i <- prd > p & prd < (1-p)
   plot(d[,a], d[,b], xlab=colnames(d)[a], ylab=colnames(d)[b], cex=0)
   type=6
@@ -404,72 +294,52 @@ bc.plot <- function(x, a=1, b=2, p=0.9, ...) {
   x2 <- quantile(d[,a], probs=1-p, type=type)
   y1 <- quantile(d[,b], probs=p, type=type)
   y2 <- quantile(d[,b], probs=1-p, type=type)
-  #		x1 <- myquantile(x[,a], p)
-  #		x2 <- myquantile(x[,a], 1-p)
-  #		y1 <- myquantile(x[,b], p)
-  #		y2 <- myquantile(x[,b], 1-p)
   polygon(rbind(c(x1,y1), c(x1,y2), c(x2,y2), c(x2,y1), c(x1,y1)), border='blue', lwd=2)
   points(d[i,a], d[i,b], xlab=colnames(x)[a], ylab=colnames(x)[b], col='green' )
   points(d[!i,a], d[!i,b], col='red', pch=3)
 }
 
 # make data.frame of lambdas vector from Maxent model object
-lambdasDF <- function(m, maxentVersion) {
-  if(maxentVersion == "maxent.jar") {
-    lambdas <- m@lambdas[1:(length(m@lambdas)-4)]
-    data.frame(var=sapply(lambdas, FUN=function(x) strsplit(x, ',')[[1]][1]),
-               coef=sapply(lambdas, FUN=function(x) as.numeric(strsplit(x, ',')[[1]][2])),
-               min=sapply(lambdas, FUN=function(x) as.numeric(strsplit(x, ',')[[1]][3])),
-               max=sapply(lambdas, FUN=function(x) as.numeric(strsplit(x, ',')[[1]][4])),
-               row.names=1:length(lambdas))  
-  } else if(maxentVersion == "maxnet") {
-    lambdas <- m$betas
-    if(sum(grepl("hinge", names(lambdas))) > 0) {
-      hinges <- which(grepl("hinge", names(lambdas)))
-      hinges.ranges <- gsub("[a-z]|\\s*\\([^\\)]+\\):", "", names(lambdas)[hinges])
-      hinges.fmins <- as.numeric(sapply(hinges.ranges, function(x) strsplit(x, split = ":")[[1]][1]))
-      hinges.fmaxs <- as.numeric(sapply(hinges.ranges, function(x) strsplit(x, split = ":")[[1]][2]))
-      nonhinges <- which(!grepl("hinge", names(lambdas)))
-      nonhinges.fmins <- as.numeric(m$featuremins[nonhinges])
-      nonhinges.fmaxs <- as.numeric(m$featuremaxs[nonhinges])
-      fmins <- c(nonhinges.fmins, hinges.fmins)
-      fmaxs <- c(nonhinges.fmaxs, hinges.fmaxs)
-    } else {
-      fmins <- as.numeric(m$featuremins)
-      fmaxs <- as.numeric(m$featuremaxs)
-    }
-    # if variables that are not in lambdas are included in mins/maxs, remove them
-    fmins <- fmins[names(m$featuremins) %in% names(lambdas)]
-    fmaxs <- fmaxs[names(m$featuremaxs) %in% names(lambdas)]
-    data.frame(var=gsub("(:[^:]+):.*", "", names(lambdas)),
-               coef=as.numeric(lambdas),
-               min=fmins,
-               max=fmaxs,
+lambdasDF <- function(mx, alg) {
+  if (alg == "maxent.jar") {
+    lambdas <- mx@lambdas[1:(length(mx@lambdas)-4)]
+    data.frame(var = sapply(lambdas, FUN = function(x) strsplit(x, ',')[[1]][1]),
+               coef = sapply(lambdas, FUN = function(x) as.numeric(strsplit(x, ',')[[1]][2])),
                row.names=1:length(lambdas))
+  } else if (alg == "maxnet") {
+    lambdas <- mx$betas
+    data.frame(var = names(lambdas),
+               coef = lambdas,
+               row.names = 1:length(lambdas))
   }
-  
 }
 ## pulls out all non-zero, non-redundant (removes hinge/product/threshold) predictor names
-mxNonzeroCoefs <- function(mx, maxentVersion = "maxnet") {
-  if(maxentVersion == "maxnet") {
-    x <- lambdasDF(mx, maxentVersion = "maxnet")
+mxNonzeroCoefs <- function(mx, alg) {
+  if (alg == "maxent.jar") {
+    x <- lambdasDF(mx, alg)
     #remove any rows that have a zero lambdas value (Second column)
     x <- x[(x[,2] != 0),]
-    #remove any rows that have duplicate "var"s (hinges, quadratics)
-    x <- unique(sub("\\^\\S*", "", x[,1]))
-    x <- unique(sub("[I]\\(", "", x))
-    x <- unique(sub("hinge\\(", "", x))
-    x <- unique(sub("\\)", "", x))
-  } else if(maxentVersion == "maxent.jar") {
-    x <- lambdasDF(mx, maxentVersion = "maxent.jar")
-    #remove any rows that have a zero lambdas value (Second column)
-    x <- x[(x[,2] != 0),]
-    #remove any rows that have duplicate "var"s (hinges, quadratics)
+    #remove any rows that have duplicate "var"s (hinges, quadratics, product)
     x <- unique(sub("\\^\\S*", "", x[,1]))
     x <- unique(sub("\\`", "", x))
     x <- unique(sub("\\'", "", x))
     x <- unique(sub("\\=\\S*", "", x))
     x <- unique(sub("\\(", "", x))
+    x <- unique(unlist(strsplit(x, split = "\\*")))
+    x <- sort(x)
+  } else if (alg == "maxnet") {
+    x <- lambdasDF(mx, alg)
+    #remove any rows that have a zero lambdas value (Second column)
+    x <- x[(x[,2] != 0),]
+    #remove any rows that have duplicate "var"s (hinges, quadratics, product)
+    x <- unique(sub("\\^\\S*", "", x[,1]))
+    x <- unique(sub("\\I", "", x))
+    x <- unique(sub("\\hinge", "", x))
+    x <- unique(sub("\\categorical", "", x))
+    x <- unique(sub("\\)\\:\\S*", "", x))
+    x <- unique(sub("\\(", "", x))
+    x <- unique(unlist(strsplit(x, split = "\\:")))
+    x <- sort(x)
   }
 }
 
@@ -587,7 +457,7 @@ printVecAsis <- function(x) {
 }
 
 #####################
-# Download utlities #
+# Download utilities #
 #####################
 
 convert_list_cols <- function(x) {

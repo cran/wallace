@@ -49,11 +49,11 @@ projectArea_MOD <- function(input, output, session, rvs) {
     
     withProgress(message = 'Projecting model to new area...', {
       if (rvs$comp6 == 'bioclim') {
-        modProjArea <- dismo::predict(modCur, projMsk)
+        modProjArea <- dismo::predict(modCur, projMsk, useC = FALSE)
       } else if (rvs$comp6 == 'maxent') {
         if (rvs$algMaxent == "maxnet") {
           if (rvs$comp7.type == "raw") {pargs <- "exponential"} else {pargs <- rvs$comp7.type}
-          modProjArea <- ENMeval::maxnet.predictRaster(modCur, projMsk, type = pargs, clamp = rvs$clamp)
+          modProjArea <- predictMaxnet(modCur, projMsk, type = pargs, clamp = rvs$clamp)
         } else if (rvs$algMaxent == "maxent.jar") {
           pargs <- paste0("outputformat=", rvs$comp7.type)
           modProjArea <- dismo::predict(modCur, projMsk, args = pargs)

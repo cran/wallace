@@ -1,5 +1,11 @@
 source("funcs/functions.R", local = TRUE)
 
+# if (!require(librarian)){
+#   install.packages("librarian")
+#   library(librarian)
+# }
+# shelf(dismo, dplyr, DT, ENMeval, jsonlite, knitr, leaflet, leaflet.extras, raster, RColorBrewer, rmarkdown, shinyjs, sp, spocc, zip)
+
 options(shiny.maxRequestSize=5000*1024^2)
 
 shinyServer(function(input, output, session) {
@@ -523,12 +529,32 @@ shinyServer(function(input, output, session) {
     rvs$mods <- e@models
     rvs$modPreds <- e@predictions
     rvs$modRes <- e@results
+    rvs$modPart <- e@results.partitions
     # x <- callModule(mapPreds_MOD, 'c7_mapPreds', rvs)
     
-    ncols <- ncol(rvs$modRes)
-    modRes.round <- cbind(rvs$modRes[,1:3], round(rvs$modRes[,4:ncols], digits=3))
-    nBinsCols <- ncols - 16
+    ncols.Res <- ncol(rvs$modRes)
+    modRes.round <- cbind(rvs$modRes[, 1:3], 
+                          round(rvs$modRes[, 4:ncols.Res], digits = 3))
+    ncols.Part <- ncol(rvs$modPart)
+    modPart.round <- cbind(rvs$modPart[, 1:2], 
+                           round(rvs$modPart[, 3:ncols.Part], digits = 3))
     # render both full model and partition avg datatable, and individual partition datatable
+    output$evalTbl <- DT::renderDataTable(modRes.round, 
+                                          options = list(scrollX = TRUE,
+                                                         sDom  = '<"top">rtp<"bottom">'))
+    output$evalTblBins <- DT::renderDataTable(modPart.round, 
+                                              options = list(scrollX = TRUE,
+                                                             sDom  = '<"top">rtp<"bottom">'))
+    output$lambdas <- renderPrint({
+      modCur <- rvs$mods[[as.character(rvs$modSel)]]
+      if (rvs$algMaxent == "maxnet") {
+        modCur$betas
+      } else if (rvs$algMaxent == "maxent.jar") {
+        modCur@lambdas
+      }
+    })
+    shinyjs::show(id = "evalTblBins")
+    
     output$evalTbls <- renderUI({
       tabsetPanel(
         tabPanel("Evaluation", 
@@ -547,21 +573,6 @@ shinyServer(function(input, output, session) {
       )
       
     })
-    output$evalTbl <- DT::renderDataTable(modRes.round[,1:16], 
-                                          options = list(scrollX = TRUE,
-                                                         sDom  = '<"top">rtp<"bottom">'))
-    output$evalTblBins <- DT::renderDataTable(modRes.round[,17:(nBinsCols+16)], 
-                                              options = list(scrollX = TRUE,
-                                                             sDom  = '<"top">rtp<"bottom">'))
-    output$lambdas <- renderPrint({
-      modCur <- rvs$mods[[rvs$modSel]]
-      if (rvs$algMaxent == "maxnet") {
-        modCur$betas
-      } else if (rvs$algMaxent == "maxent.jar") {
-        modCur@lambdas
-      }
-    })
-    shinyjs::show(id = "evalTblBins")
     
     # switch to Results tab
     updateTabsetPanel(session, 'main', selected = 'Results')
@@ -580,24 +591,33 @@ shinyServer(function(input, output, session) {
     # stop if no occurrence partition group
     req(rvs$occsGrp)
     rvs$comp6 <- 'bioclim'  # record the enm selected
-    rvs$mods <- e$models
-    rvs$modPreds <- e$predictions
-    rvs$modRes <- e$results
+    rvs$mods <- e@models
+    rvs$modPreds <- e@predictions
+    rvs$modRes <- e@results
+    rvs$modPart <- e@results.partitions
+    output$evalTbl <- DT::renderDataTable(round(rvs$modRes, digits = 3), 
+                                          options = list(scrollX = TRUE, 
+                                                         sDom  = '<"top">rtp<"bottom">'))
+    output$evalTblBins <- DT::renderDataTable(
+      round(rvs$modPart[, 2:ncol(rvs$modPart)], digits = 3),
+      options = list(scrollX = TRUE, sDom  = '<"top">rtp<"bottom">'))
     output$evalTbls <- renderUI({
       tagList(
-        br(), 
-        div("Full model, partition bin average and individual evaluation statistics", id="stepText"), br(), br(),
-        DT::dataTableOutput('evalTbl')
+        br(),
+        div("Full model and partition bin average evaluation statistics", 
+            id = "stepText"), br(), br(),
+        DT::dataTableOutput('evalTbl'), br(), 
+        div("Individual partition bin evaluation statistics", 
+            id = "stepText"), br(), br(),
+        DT::dataTableOutput('evalTblBins') 
       )
     })
-    output$evalTbl <- DT::renderDataTable(round(rvs$modRes, digits=3), options = list(scrollX = TRUE,
-                                                                                      sDom  = '<"top">rtp<"bottom">'))
     # switch to Results tab
     updateTabsetPanel(session, 'main', selected = 'Results')
     updateRadioButtons(session, "visSel", 
                        choices = list("BIOCLIM Envelope Plots" = 'bcPlots',
                                       "Map Prediction" = 'map'))
-    shinyjs::hide(id = "evalTblBins")
+    shinyjs::show(id = "evalTblBins")
   })
   
   # download for partitioned occurrence records csv
@@ -630,14 +650,15 @@ shinyServer(function(input, output, session) {
   # ui that populates with the names of environmental predictors used
   output$envSelUI <- renderUI({
     req(rvs$modPreds)
+    req(rvs$modSel)
     # for Maxent, only display the environmental predictors with non-zero beta coefficients
     # from the lambdas file (the predictors that were not removed via regularization)
     if (rvs$comp6 == "maxent") {
       modCur <- rvs$mods[[rvs$modSel]]
       if (rvs$algMaxent == "maxnet") {
-        nonZeroCoefs <- mxNonzeroCoefs(modCur, maxentVersion = "maxnet")
+        nonZeroCoefs <- mxNonzeroCoefs(modCur, alg = "maxnet")
       } else if(rvs$algMaxent == "maxent.jar") {
-        nonZeroCoefs <- mxNonzeroCoefs(modCur, maxentVersion = "maxent.jar")
+        nonZeroCoefs <- mxNonzeroCoefs(modCur, alg = "maxent.jar")
       }
       envsNames <- names(rvs$bgMsk[[nonZeroCoefs]])
       rvs$mxNonZeroCoefs <- envsNames

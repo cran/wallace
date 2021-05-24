@@ -66,7 +66,7 @@ pj.thr <- if (!(is.null(rvs$comp8.thr))) {!(rvs$comp8.thr == 'noThresh')} else {
 pj.any <- pj.area | pj.time | pj.mess
 ```
 
-Please find below the R code history from your *Wallace* v1.0.6.3 session. 
+Please find below the R code history from your *Wallace* v1.1.0 session. 
 
 You can reproduce your session results by running this R Markdown file in RStudio. 
 
@@ -308,6 +308,7 @@ envsBgMsk <- raster::mask(envsBgCrop, bgExt)
 bg.xy <- dismo::randomPoints(envsBgMsk, {{bgPtsNum}})
 # convert matrix output to data frame
 bg.xy <- as.data.frame(bg.xy)  
+colnames(bg.xy) <- c("longitude", "latitude")
 ```
 
 
@@ -328,27 +329,29 @@ You selected to partition your occurrence data by the `r partSwitch` method.
 
 ```{r blockGrp, echo = part.block, include = part.block}
 occs.xy <- occs[c('longitude', 'latitude')]
-group.data <- ENMeval::get.block(occ=occs.xy, bg.coords=bg.xy)
+group.data <- ENMeval::get.block(occ = occs.xy, bg = bg.xy)
 ```
 
 ```{r check1Grp, echo = part.cb1, include = part.cb1}
 occs.xy <- occs[c('longitude', 'latitude')]
-group.data <- ENMeval::get.checkerboard1(occ=occs.xy, env=envsBgMsk, bg.coords=bg.xy, aggregation.factor={{aggFact}})
+group.data <- ENMeval::get.checkerboard1(occ = occs.xy, env = envsBgMsk,
+                                         bg = bg.xy, aggregation.factor = {{aggFact}})
 ```
 
 ```{r check2Grp, echo = part.cb2, include = part.cb2}
 occs.xy <- occs[c('longitude', 'latitude')]
-group.data <- ENMeval::get.checkerboard2(occ=occs.xy, env=envsBgMsk, bg.coords=bg.xy, aggregation.factor={{aggFact}})
+group.data <- ENMeval::get.checkerboard2(occ = occs.xy, env = envsBgMsk,
+                                         bg = bg.xy, aggregation.factor = {{aggFact}})
 ```
 
 ```{r jackGrp, echo = part.jack, include = part.jack}
 occs.xy <- occs[c('longitude', 'latitude')]
-group.data <- ENMeval::get.jackknife(occ=occs.xy, bg.coords=bg.xy)
+group.data <- ENMeval::get.jackknife(occ = occs.xy, bg = bg.xy)
 ```
 
 ```{r randGrp, echo = part.rand, include = part.rand}
 occs.xy <- occs[c('longitude', 'latitude')]
-group.data <- ENMeval::get.randomkfold(occ=occs.xy, bg.coords=bg.xy, kfolds={{kfolds}})
+group.data <- ENMeval::get.randomkfold(occ = occs.xy, bg = bg.xy, kfolds = {{kfolds}})
 ```
 
 ```{r  echo = part.any, include = part.any}
@@ -366,25 +369,29 @@ You selected the `r "{{enmSel}}"` model.
 ```
 
 ```{r bioclim, echo = mod.bioclim, include = mod.bioclim}
-e <- BioClim_eval(as.data.frame(occs.xy), bg.xy, occs.grp, bg.grp, envsBgMsk)
+e <- ENMeval::ENMevaluate(occs = occs.xy, envs = envsBgMsk, bg = bg.xy,
+                          algorithm = "bioclim", partitions = "user",
+                          occ.grp = occs.grp, bg.grp = bg.grp)
 # unpack the results data frame and list of models
-evalTbl <- e$results
-evalMods <- e$models
-names(e$predictions) <- "BIOCLIM"
-evalPreds <- e$predictions
+evalTbl <- e@results
+evalMods <- e@models
+names(e@predictions) <- "bioclim"
+evalPreds <- e@predictions
 ```
 
 ```{r maxent, echo = mod.maxent, include = mod.maxent, results = 'hide'}
 # define the vector of regularization multipliers to test
 rms <- seq({{rms1}}, {{rms2}}, {{rmsStep}})
 # iterate model building over all chosen parameter settings
-e <- ENMeval::ENMevaluate(occs.xy, envsBgMsk, bg.coords = bg.xy, RMvalues = rms, fc = {{fcs}}, 
-                          method = 'user', occs.grp, bg.grp, clamp = {{clamp}}, algorithm = "{{algMaxent}}")
+e <- ENMeval::ENMevaluate(occ = occs.xy, env = envsBgMsk, bg.coords = bg.xy,
+                          RMvalues = rms, fc = {{fcs}}, method = 'user', 
+                          occ.grp = occs.grp, bg.grp = bg.grp, 
+                          clamp = {{clamp}}, algorithm = "{{algMaxent}}")
 
 # unpack the results data frame, the list of models, and the RasterStack of raw predictions
 evalTbl <- e@results
 evalMods <- e@models
-names(evalMods) <- e@results$settings
+names(evalMods) <- e@tune.settings$tune.args
 evalPreds <- e@predictions
 ```
 
@@ -405,12 +412,12 @@ plot(evalMods[["{{modSel}}"]], vars = {{mxNonZeroCoefs}}, type = "cloglog")
 
 ```{r bcPlot, echo = viz.bcPlot, include = viz.bcPlot}
 # view BIOCLIM envelope plot
-plot(evalMods[['BIOCLIM']], a = {{bcPlot1}}, b = {{bcPlot2}}, p = {{bcPlotP}})
+plot(evalMods[['bioclim']], a = {{bcPlot1}}, b = {{bcPlot2}}, p = {{bcPlotP}})
 ```
 
 ```{r evalPlot, echo = viz.mxEval, include = viz.mxEval}
 # view ENMeval results
-ENMeval::eval.plot(evalTbl, value = "{{mxEvalSel}}")
+ENMeval::evalplot.stats(e, stats = "{{mxEvalSel}}", "rm", "fc")
 ```
 
 ```{r mapPred, echo = viz.pred, include = viz.pred}
@@ -430,12 +437,12 @@ pred <- evalPreds[["{{modSel}}"]]
 
 ```{r maxnetLog, echo = viz.pred.log & alg.maxnet, include = viz.pred.log}
 # generate logistic prediction
-pred <- ENMeval::maxnet.predictRaster(mod, envsBgMsk, type = 'logistic', clamp = {{clamp}})
+pred <- predictMaxnet(mod, envsBgMsk, type = 'logistic', clamp = {{clamp}})
 ```
 
 ```{r maxnetCll, echo = viz.pred.cll & alg.maxnet, include = viz.pred.cll}
 # generate cloglog prediction
-pred <- ENMeval::maxnet.predictRaster(mod, envsBgMsk, type = 'cloglog', clamp = {{clamp}}) 
+pred <- predictMaxnet(mod, envsBgMsk, type = 'cloglog', clamp = {{clamp}}) 
 ```
 
 ```{r maxentLog, echo = viz.pred.log & alg.maxent, include = viz.pred.log}
@@ -480,19 +487,19 @@ Now use crop and mask the predictor variables by projPoly, and use the maxnet.pr
 ```{r projAreaMaxnet.raw, echo = pj.area & alg.maxnet & viz.pred.raw, include = pj.area}
 predsProj <- raster::crop(envs, projPoly)
 predsProj <- raster::mask(predsProj, projPoly)
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'exponential', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'exponential', clamp = {{clamp}})
 ```
 
 ```{r projAreaMaxnet.log, echo = pj.area & alg.maxnet & viz.pred.log, include = pj.area}
 predsProj <- raster::crop(envs, projPoly)
 predsProj <- raster::mask(predsProj, projPoly)
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'logistic', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'logistic', clamp = {{clamp}})
 ```
 
 ```{r projAreaMaxnet.cll, echo = pj.area & alg.maxnet & viz.pred.cll, include = pj.area}
 predsProj <- raster::crop(envs, projPoly)
 predsProj <- raster::mask(predsProj, projPoly)
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'cloglog', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'cloglog', clamp = {{clamp}})
 ```
 
 ```{asis, echo = pj.area & alg.maxent, eval = pj.area, include = pj.area}
@@ -526,7 +533,7 @@ Now use crop and mask the predictor variables by projPoly, and use the dismo::pr
 ```{r projAreaBioclim, echo = pj.area & mod.bioclim, include = pj.area}
 predsProj <- raster::crop(envs, projPoly)
 predsProj <- raster::mask(predsProj, projPoly)
-proj <- dismo::predict(mod, predsProj)
+proj <- dismo::predict(mod, predsProj, useC = FALSE)
 ```
 
 ```{asis, echo = pj.time & alg.maxnet, eval = pj.time, include = pj.time}
@@ -558,17 +565,17 @@ predsProj <- raster::subset(predsProj, names(envs))
 
 ```{r pTNet.raw, echo = pj.time & alg.maxnet & viz.pred.raw, include = pj.time}
 # predict model
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'exponential', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'exponential', clamp = {{clamp}})
 ```
 
 ```{r pTNet.log, echo = pj.time & alg.maxnet & viz.pred.log, include = pj.time}
 # predict model
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'logistic', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'logistic', clamp = {{clamp}})
 ```
 
 ```{r pTNet.cll, echo = pj.time & alg.maxnet & viz.pred.cll, include = pj.time}
 # predict model
-proj <- ENMeval::maxnet.predictRaster(mod, predsProj, type = 'cloglog', clamp = {{clamp}})
+proj <- predictMaxnet(mod, predsProj, type = 'cloglog', clamp = {{clamp}})
 ```
 
 ```{r pTEnt.raw, echo = pj.time & alg.maxent & viz.pred.raw, include = pj.time}
@@ -588,7 +595,7 @@ proj <- dismo::predict(mod, predsProj, args = c('outputformat=cloglog'))
 
 ```{r pTBioclim, echo = pj.time & mod.bioclim, include = pj.time}
 # predict model
-proj <- dismo::predict(mod, predsProj)
+proj <- dismo::predict(mod, predsProj, useC = FALSE)
 ```
 
 ```{r, echo = pj.thr, include = pj.thr}
