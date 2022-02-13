@@ -1,3 +1,9 @@
+# wallace 1.1.2
+- Adding ecospat in Depends for fixing CBI calculation.
+
+# wallace 1.1.1
+- Migration to GitHub Actions for Continuous Integration testing
+
 # wallace 1.1.0
 - Working with new version of ENMeval (v2)
 

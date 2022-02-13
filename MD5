@@ -1,9 +1,9 @@
-67b41bc08d6aa597b16b3574d20c7e88 *DESCRIPTION
+482c5d43de36274bd3d00bab1dd912f8 *DESCRIPTION
 9162a59df959b9a9984812c1dec01d1b *NAMESPACE
-e0d396ebfad599e75bd6507b902c7330 *NEWS.md
+bce37c9e4a7d6babbfc938e1d1249d25 *NEWS.md
 69ad66f4c19ea764e8a5dabc02f2692f *R/run_wallace.R
-0902a603e9f232bb643784deecfda8d3 *R/wallace-package.R
-e5228c6c49be3249542b21c5d1c9cac0 *README.md
+5474fe498df611154ad29b5c015048f6 *R/wallace-package.R
+74d559566886e53bdb6c6531169a259a *README.md
 6aca2905335c7bf20b4c36cf9d7fbb60 *inst/shiny/Rmd/gtext_comp1.Rmd
 4232efa4fc3970d2080147a2457a7bed *inst/shiny/Rmd/gtext_comp1_dbOccs.Rmd
 cdfc11f61b28ae73290dfe20820d77aa *inst/shiny/Rmd/gtext_comp1_userOccs.Rmd
@@ -33,10 +33,10 @@ ba3b0029df2969dc668db10ebd388742 *inst/shiny/Rmd/gtext_comp7_mxEvalPlots.Rmd
 8bfca2c1e979ad41ea4b63bec42565a4 *inst/shiny/Rmd/gtext_comp8_pjArea.Rmd
 d49d7e28dc9ed43e26b824c660dcdba5 *inst/shiny/Rmd/gtext_comp8_pjTime.Rmd
 508e5dd69c63c699e619d451641eea35 *inst/shiny/Rmd/text_about.Rmd
-fb774d6e1fe9fb391325fdc9ab4a3676 *inst/shiny/Rmd/text_intro.Rmd
-93e5031b0d1d55a417318286997c1ed8 *inst/shiny/Rmd/text_intro_tab.Rmd
+4e3701e35ea9e72f7b005810dadea52b *inst/shiny/Rmd/text_intro.Rmd
+9251d75d6ceb9efc566d5bbb894e5619 *inst/shiny/Rmd/text_intro_tab.Rmd
 871aeb740f315d66e20c9a7db8e7cf6a *inst/shiny/Rmd/text_sessionCode.Rmd
-279d57ace05e121e825cbd2f9918c13f *inst/shiny/Rmd/userReport.Rmd
+a2f8d16bede8a101010a2455512698bf *inst/shiny/Rmd/userReport.Rmd
 cdf978fd68af6c39d085f9480ebb1d3a *inst/shiny/css/styles.css
 bcbc59cfb2ee5aab05e8288d88aacc8c *inst/shiny/funcs/functions.R
 923bd4f4e0bcb8b722afc4f32c815d94 *inst/shiny/js/scroll.js
@@ -45,7 +45,7 @@ bcbc59cfb2ee5aab05e8288d88aacc8c *inst/shiny/funcs/functions.R
 7307040412b8d615d17cc6dd9aea70a4 *inst/shiny/modules/mod_c2_removeByID.R
 f97bef06d7588cc1ff87953b629ec9e7 *inst/shiny/modules/mod_c2_selectOccs.R
 4abfbba9ddef628af26556539716837f *inst/shiny/modules/mod_c2_thinOccs.R
-157df676e2c7502bbdf62e1f78cbac56 *inst/shiny/modules/mod_c3_userEnvs.R
+41fdcc33f8d173c8ba92d4b6e9caabfd *inst/shiny/modules/mod_c3_userEnvs.R
 53956ee0fd20596a970a29e40e81bd97 *inst/shiny/modules/mod_c3_worldclim.R
 cf0c727dac7aabe9e9b3e5413d0d9c61 *inst/shiny/modules/mod_c4_bgExtent.R
 378065cf16917376007083ec19c3acda *inst/shiny/modules/mod_c4_bgMskSamplePts.R
@@ -82,4 +82,4 @@ a61abadaddb2abe80dc73ef639b43802 *inst/shiny/www/img/sarah.png
 997fa1b97f2f9a042961b4123a5bb7fa *inst/shiny/www/img/ufg.jpg
 10ef815874357d2e6494e7e237bb2712 *inst/shiny/www/img/valentina.png
 c6782753bb62dc0e5118e96b456e456e *man/run_wallace.Rd
-2136ea47bd5e2ad7fb7369617f1711bc *man/wallace-package.Rd
+858d583379e931b5e09ab6b26e556ed3 *man/wallace-package.Rd
