@@ -1,1009 +1,1486 @@
-source("funcs/functions.R", local = TRUE)
+function(input, output, session) {
+  ########################## #
+  # REACTIVE VALUES LISTS ####
+  ########################## #
 
-# if (!require(librarian)){
-#   install.packages("librarian")
-#   library(librarian)
-# }
-# shelf(dismo, dplyr, DT, ENMeval, jsonlite, knitr, leaflet, leaflet.extras, raster, RColorBrewer, rmarkdown, shinyjs, sp, spocc, zip)
+  # single species list of lists
+  spp <- reactiveValues()
+  envs.global <- reactiveValues()
 
-options(shiny.maxRequestSize=5000*1024^2)
-
-shinyServer(function(input, output, session) {
-  # disable download buttons
-  shinyjs::disable("dlDbOccs")
-  shinyjs::disable("dlProcOccs")
-  # shinyjs::disable("dlEnvs")
-  shinyjs::disable("dlMskEnvs")
-  shinyjs::disable("dlPart")
-  shinyjs::disable("downloadEvalcsv")
-  shinyjs::disable("downloadEvalPlots")
-  shinyjs::disable("dlPred")
-  shinyjs::disable("dlProj")
-  shinyjs::disable("dlRMD")
-  
-  # initialize module parameters list
-  rvs <- reactiveValues(logs = logInit(), comp1='', comp2='', comp3='', comp4.shp='', comp4.buf=0,
-                        comp5='', comp6='', comp7.type='', comp7='', comp8.pj='', comp8.esim='')
-  
-  # observeEvent(input$load, {
-  #   f <- read.csv('C:/Users/gepin/Desktop/maxnet_files/Canis lupus_partitioned_occs.csv')
-  #   rvs$occs <- f %>% dplyr::filter(name != 'background')
-  #   rvs$occs$pop <- unlist(apply(rvs$occs, 1, popUpContent))
-  #   rvs$occsGrp <- rvs$occs$group
-  #   rvs$bgPts <- f %>% dplyr::filter(name == 'background')
-  #   rvs$bgGrp <- rvs$bgPts$group
-  #   rvs$bgShp <- rgdal::readOGR('C:/Users/gepin/Desktop/maxnet_files/box.shp')
-  #   rvs$bgPts <- rvs$bgPts %>% dplyr::select(longitude, latitude)
-  #   rvs$envs <- raster::stack(list.files('C:/Users/gepin/Desktop/maxnet_files/bio_10m_bil', 'bil$', full.names=TRUE))
-  #   rvs$bgMsk <- raster::stack(list.files('C:/Users/gepin/Desktop/maxnet_files/mskEnvs', 'tif$', full.names = TRUE))  
-  #   print('HACKING DONE')
-  # })
-  
-  # for RMD
-  curWD <- getwd()
-  
-  # logs <- reactiveValues(entries=logInit())
-  gtext <- reactiveValues()
-  
-  # load modules
-  for (f in list.files('./modules')) {
-    source(file.path('modules', f), local=TRUE)
+  # Variable to keep track of current log message
+  initLogMsg <- function() {
+    intro <- '***WELCOME TO WALLACE***'
+    brk <- paste(rep('------', 14), collapse = '')
+    expl <- 'Please find messages for the user in this log window.'
+    logInit <- gsub('.{4}$', '', paste(intro, brk, expl, brk, '', sep = '<br>'))
+    logInit
   }
-  
-  # initialize log window
-  output$log <- renderUI({tags$div(id='logHeader', tags$div(id='logContent', 
-                                                            HTML(paste0(rvs$logs, "<br>", collapse = ""))))})
-  
+  logger <- reactiveVal(initLogMsg())
+
+  # Write out logs to the log Window
+  observeEvent(logger(), {
+    shinyjs::html(id = "logHeader", html = logger(), add = FALSE)
+    shinyjs::js$scrollLogger()
+  })
+
+  # tab and module-level reactives
+  component <- reactive({
+    input$tabs
+  })
+  observe({
+    if (component() == "_stopapp") {
+      shinyjs::runjs("window.close();")
+      stopApp()
+    }
+  })
+  module <- reactive({
+    if (component() == "intro") "intro"
+    else input[[glue("{component()}Sel")]]
+  })
+
   ######################## #
   ### GUIDANCE TEXT ####
   ######################## #
-  
+
   # UI for component guidance text
-  output$gtext_comp <- renderUI({
-    shiny::includeMarkdown(file.path('Rmd', gtext$cur_comp))
+  output$gtext_component <- renderUI({
+    file <- file.path('Rmd', glue("gtext_{component()}.Rmd"))
+    if (!file.exists(file)) return()
+    includeMarkdown(file)
   })
-  
+
   # UI for module guidance text
-  output$gtext_mod <- renderUI({
-    shiny::includeMarkdown(file.path('Rmd', gtext$cur_mod))
+  output$gtext_module <- renderUI({
+    req(module())
+    file <- COMPONENT_MODULES[[component()]][[module()]]$instructions
+    if (is.null(file)) return()
+    includeMarkdown(file)
   })
-  
-  # guidance text and tab behavior
-  observe({
-    if (input$tabs == 1) {
-      updateTabsetPanel(session, 'main', selected = 'Map')
-      gtext$cur_comp <- 'gtext_comp1.Rmd'
-      if (input$occSel == 'db') gtext$cur_mod <- "gtext_comp1_dbOccs.Rmd"
-      if (input$occSel == 'user') gtext$cur_mod <- "gtext_comp1_userOccs.Rmd"
-    }
-    if (input$tabs == 2) {
-      updateTabsetPanel(session, 'main', selected = 'Map')
-      gtext$cur_comp <- "gtext_comp2.Rmd"
-      # if Module: Select Localities, populate guidance text and select legend
-      if (input$procOccSel == 'selOccs') gtext$cur_mod <- "gtext_comp2_selectOccsOnMap.Rmd"
-      if (input$procOccSel == 'remID') gtext$cur_mod <- "gtext_comp2_removeByID.Rmd"
-      if (input$procOccSel == 'spthin') gtext$cur_mod <- "gtext_comp2_spatialThin.Rmd"
-    }
-    if (input$tabs == 3) {
-      updateTabsetPanel(session, 'main', selected = 'Results')
-      gtext$cur_comp <- "gtext_comp3.Rmd"
-      if (input$envDataSel == 'wcbc') gtext$cur_mod <- "gtext_comp3_worldclim.Rmd"
-      if (input$envDataSel == 'user') gtext$cur_mod <- "gtext_comp3_userEnvs.Rmd"
-    }
-    if (input$tabs == 4) {
-      updateTabsetPanel(session, 'main', selected = 'Map')
-      gtext$cur_comp <- "gtext_comp4.Rmd"
-      if (input$envProcSel == 'bgSel') gtext$cur_mod <- "gtext_comp4_backg.Rmd"
-      if (input$envProcSel == 'bgUser') gtext$cur_mod <- "gtext_comp4_userBg.Rmd"
-      
-    }
-    if (input$tabs == 5) {
-      updateTabsetPanel(session, 'main', selected = 'Map')
-      gtext$cur_comp <- "gtext_comp5.Rmd"
-      if (input$partSel == 'sp') gtext$cur_mod <- "gtext_comp5_spatial.Rmd"
-      if (input$partSel == 'nsp') gtext$cur_mod <- "gtext_comp5_nonspatial.Rmd"
-    }
-    if (input$tabs == 6) {
-      updateTabsetPanel(session, 'main', selected = 'Results')
-      gtext$cur_comp <- "gtext_comp6.Rmd"
-      if (input$enmSel == 'BIOCLIM') gtext$cur_mod <- "gtext_comp6_bioclim.Rmd"
-      if (input$enmSel == 'Maxent') gtext$cur_mod <- "gtext_comp6_maxent.Rmd"
-    }
-    if (input$tabs == 7) {
-      gtext$cur_comp <- "gtext_comp7.Rmd"
-      if (input$visSel == 'map') {
-        updateTabsetPanel(session, 'main', selected = 'Map')
-        gtext$cur_mod <- "gtext_comp7_map.Rmd"
-      } else {
-        updateTabsetPanel(session, 'main', selected = 'Results')
-        if (input$visSel == 'bcPlots') gtext$cur_mod <- "gtext_comp7_bcPlots.Rmd"
-        if (input$visSel == 'mxEval') gtext$cur_mod <- "gtext_comp7_mxEvalPlots.Rmd"
-        if (input$visSel == 'response') gtext$cur_mod <- "gtext_comp7_respCurves.Rmd"
-      }
-    }
-    if (input$tabs == 8) {
-      updateTabsetPanel(session, 'main', selected = 'Map')
-      gtext$cur_comp <- "gtext_comp8.Rmd"
-      if (input$projSel == 'projArea') gtext$cur_mod <- "gtext_comp8_pjArea.Rmd"
-      if (input$projSel == 'projTime') gtext$cur_mod <- "gtext_comp8_pjTime.Rmd"
-      if (input$projSel == 'mess') gtext$cur_mod <- "gtext_comp8_mess.Rmd"
-    }
+
+  # Help Component
+  help_components <- c("occs", "envs", "poccs", "penvs", "espace", "part", "model", "vis", "xfer")
+  lapply(help_components, function(component) {
+    btn_id <- paste0(component, "Help")
+    observeEvent(input[[btn_id]], updateTabsetPanel(session, "main", "Component Guidance"))
   })
-  
+
+  # Help Module
+  observeEvent(input$occs_queryDbHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$occs_paleoDbHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$occs_userOccsHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$envs_worldclimHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$envs_ecoclimateHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$envs_userEnvsHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$poccs_selectOccsHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$poccs_removeByIDHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$poccs_thinOccsHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$penvs_bgExtentHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$penvs_drawBgExtentHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$penvs_userBgExtentHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$espace_pcaHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$espace_occDensHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$espace_nicheOvHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$part_nonSpatHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$part_spatHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$model_maxentHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$model_bioclimHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$vis_mapPredsHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$vis_maxentEvalPlotHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$vis_responsePlotHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$vis_bioclimPlotHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$xfer_areaHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$xfer_timeHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$xfer_userHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+  observeEvent(input$xfer_messHelp, updateTabsetPanel(session, "main", "Module Guidance"))
+
   ######################## #
-  ### MAPPING ####
+  ### MAPPING LOGIC ####
   ######################## #
-  
+
   # create map
-  m <- leaflet() %>% setView(0, 0, zoom = 2) %>% addProviderTiles('Esri.WorldTopoMap')
-  output$map <- renderLeaflet(m)
-  
+  output$map <- renderLeaflet(
+    leaflet() %>%
+      setView(0, 0, zoom = 2) %>%
+      addProviderTiles('Esri.WorldTopoMap') %>%
+      leafem::addMouseCoordinates()
+  )
+
   # create map proxy to make further changes to existing map
   map <- leafletProxy("map")
-  
-  # initialize provider tile option
-  observe({map %>% addProviderTiles(input$bmap)})
-  
-  # initialize draw toolbar for c2_selectOccs and c8
+
+  # change provider tile option
   observe({
-    if ((input$tabs == 2 & input$procOccSel == 'selOccs') | input$tabs == 8) {
-      map %>% leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
-                                             rectangleOptions = FALSE, circleOptions = FALSE,
-                                             markerOptions = FALSE, circleMarkerOptions = FALSE,
-                                             editOptions = leaflet.extras::editToolbarOptions())
-    } else {
-      map %>% leaflet.extras::removeDrawToolbar(clearFeatures = TRUE)
-    }
+    map %>% addProviderTiles(input$bmap)
   })
-  
+
+  # logic for recording the attributes of drawn polygon features
   observeEvent(input$map_draw_new_feature, {
+    req(curSp())
     coords <- unlist(input$map_draw_new_feature$geometry$coordinates)
     xy <- matrix(c(coords[c(TRUE,FALSE)], coords[c(FALSE,TRUE)]), ncol=2)
+    colnames(xy) <- c('longitude', 'latitude')
     id <- input$map_draw_new_feature$properties$`_leaflet_id`
-    if (input$tabs == 2 & input$procOccSel == 'selOccs') {
-      rvs$polySelXY <- xy
-      rvs$polySelID <- id
-    } else if (input$tabs == 8) {
-      rvs$polyPjXY <- xy
-      rvs$polyPjID <- id  
+
+    if(component() == 'poccs') {
+      spp[[curSp()]]$polySelXY <- xy
+      spp[[curSp()]]$polySelID <- id
+    }
+    if(component() == 'penvs') {
+      spp[[curSp()]]$polyExtXY <- xy
+      spp[[curSp()]]$polyExtID <- id
+    }
+    if(component() == 'xfer') {
+      spp[[curSp()]]$polyXfXY <- xy
+      spp[[curSp()]]$polyXfID <- id
+    }
+    # UI CONTROLS - for some reason, curSp() disappears here unless input is updated
+    updateSelectInput(session, "curSp", selected = curSp())
+  })
+
+  # Call the module-specific map function for the current module
+  observe({
+    # must have one species selected and occurrence data
+    req(length(curSp()) == 1, occs(), module())
+    map_fx <- COMPONENT_MODULES[[component()]][[module()]]$map_function
+    if (!is.null(map_fx)) {
+      do.call(map_fx, list(map, common = common))
     }
   })
-  
-  ########################################## #
-  ### COMPONENT 1: OBTAIN OCCURRENCE DATA ####
-  ########################################## #
-  
-  # module Query Database
-  dbOccs <- callModule(queryDb_MOD, 'c1_queryDb', rvs)
-  
-  spName <- reactive(rvs$spName)
-  
-  observeEvent(input$goDbOccs, {
-    rvs$occs <- dbOccs()
-    rvs$occsPreProc <- rvs$occs
-    # record for RMD
-    rvs$comp1 <- 'db'
-    map %>%
-      clearMarkers() %>%
-      clearShapes() %>%
-      clearImages() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-    shinyjs::enable("dlDbOccs")
-    shinyjs::enable("dlRMD")
+
+  ######################## #
+  ### BUTTONS LOGIC ####
+  ######################## #
+
+  # Enable/disable buttons
+  observe({
+    shinyjs::toggleState("goLoad_session", !is.null(input$load_session$datapath))
+    req(length(curSp()) == 1)
+    shinyjs::toggleState("dlDbOccs", !is.null(occs()))
+    shinyjs::toggleState("dlOccs", !is.null(occs()))
+    shinyjs::toggleState("dlAllOccs", length(allSp()) > 1)
+    shinyjs::toggleState("dlRMD", !is.null(occs()))
+    shinyjs::toggleState("dlGlobalEnvs", !is.null(spp[[curSp()]]$envs))
+    shinyjs::toggleState("dlProcOccs",
+                         !is.null(spp[[curSp()]]$rmm$code$wallace$occsSelPolyCoords) |
+                           !is.null(spp[[curSp()]]$procOccs$occsThin) |
+                           !is.null(spp[[curSp()]]$rmm$code$wallace$removedIDs))
+    shinyjs::toggleState("dlMskEnvs", !is.null(spp[[curSp()]]$procEnvs$bgMask))
+    shinyjs::toggleState("dlBgPts", !is.null(spp[[curSp()]]$bgPts))
+    shinyjs::toggleState("dlBgShp", !is.null(spp[[curSp()]]$procEnvs$bgExt))
+    shinyjs::toggleState("dlPcaResults", !is.null(spp[[curSp()]]$pca))
+    shinyjs::toggleState("dlPart", ("partition" %in% colnames(spp[[curSp()]]$occs)))
+    shinyjs::toggleState("dlEvalTbl", !is.null(evalOut()))
+    shinyjs::toggleState("dlEvalTblBins", !is.null(evalOut()))
+    shinyjs::toggleState("dlVisBioclim", !is.null(spp[[curSp()]]$rmm$model$algorithm$bioclim$notes))
+    shinyjs::toggleState("dlMaxentPlots", !is.null(spp[[curSp()]]$rmm$model$algorithm$maxent$notes))
+    shinyjs::toggleState("dlRespCurves", !is.null(spp[[curSp()]]$rmm$model$algorithm$maxent$notes))
+    shinyjs::toggleState("dlPred", !is.null(spp[[curSp()]]$visualization$occPredVals))
+    shinyjs::toggleState("dlXfShp", !is.null(spp[[curSp()]]$transfer$xfExt))
+    shinyjs::toggleState("dlXferEnvs", !is.null(spp[[curSp()]]$transfer$xfEnvsDl))
+    shinyjs::toggleState("dlXfer", !is.null(spp[[curSp()]]$transfer$xfEnvs))
+    shinyjs::toggleState("dlMess", !is.null(spp[[curSp()]]$transfer$messVals))
+    # shinyjs::toggleState("dlWhatever", !is.null(spp[[curSp()]]$whatever))
   })
-  
-  # module User Occurrence Data
-  userOccs <- callModule(userOccs_MOD, 'c1_userOccs', rvs)
-  
-  observeEvent(input$goUserOccs, {
-    rvs$occs <- userOccs()
-    rvs$occsPreProc <- rvs$occs
-    # record for RMD
-    rvs$comp1 <- 'csv'
-    map %>%
-      clearMarkers() %>%
-      clearShapes() %>%
-      clearImages() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-    shinyjs::disable("dlDbOccs")
-    shinyjs::enable("dlRMD")
+
+  observe({
+    req(length(curSp()) == 2)
+    shinyjs::toggleState("dlPcaResults", !is.null(spp[[paste0(curSp()[1],".",curSp()[2])]]$pca))
+    shinyjs::toggleState("dlOccDens", !is.null(spp[[paste0(curSp()[1],".",curSp()[2])]]$occDens))
+    shinyjs::toggleState("dlNicheOvPlot", !is.null(spp[[paste0(curSp()[1],".",curSp()[2])]]$nicheOv))
   })
-  
-  # TABLE
-  options <- list(autoWidth = TRUE, columnDefs = list(list(width = '40%', targets = 7)),
-                  scrollX=TRUE, scrollY=400)
-  output$occTbl <- DT::renderDataTable({
-    req(rvs$occs)
-    occsDT <- rvs$occs %>% dplyr::mutate(longitude = round(as.numeric(longitude), digits = 2),
-                                         latitude = round(as.numeric(latitude), digits = 2))
-    occsDT %>% dplyr::select(name, occID, longitude:elevation)
-  }, rownames = FALSE)
-  
-  # handle downloading of original GBIF records after cleaning
-  output$dlDbOccs <- downloadHandler(
-    filename = function() {paste0(formatSpName(spName()), '_original_', rvs$occDb, ".csv")},
-    content = function(file) {
-      write_csv_robust(rvs$occsOrig, file, row.names=FALSE)
-    }
-  )
-  
-  ########################################### #
-  ### COMPONENT 2: PROCESS OCCURRENCE DATA ####
-  ########################################### #
-  
-  # module Remove Occurrences By ID
-  remByID <- callModule(removeByID_MOD, 'c2_removeByID', rvs)
-  
-  observeEvent(input$goRemoveByID, {
-    rvs$occs <- remByID()
-    # record for RMD
-    rvs$comp2 <- c(rvs$comp2, 'rem')
-    map %>%
-      clearMarkers() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-    shinyjs::enable("dlProcOccs")
-  })
-  
-  # module Select Occurrences on Map
-  selOccs <- callModule(selectOccs_MOD, 'c2_selOccs', rvs)
-  
-  observeEvent(input$goSelectOccs, {
-    rvs$occs <- selOccs()
-    # record for RMD
-    rvs$comp2 <- c(rvs$comp2, 'sel')
-    map %>%
-      clearMarkers() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs) %>%
-      drawToolbarRefresh()
-    shinyjs::enable("dlProcOccs")
-  })
-  
-  # module Spatial Thin
-  thinOccs <- callModule(thinOccs_MOD, 'c2_thinOccs', rvs)
-  
-  observeEvent(input$goThinOccs, {
-    occsPreThin <- rvs$occs
-    rvs$occs <- thinOccs()
-    # stop if no occurrence data
-    req(rvs$occs)
-    # record for RMD
-    rvs$comp2 <- c(rvs$comp2, 'thin')
-    # MAPPING - blue pts for remove, red pts for keep
-    map %>% 
-      addCircleMarkers(data = occsPreThin, lat = ~latitude, lng = ~longitude,
-                       radius = 5, color = 'red', fillColor = 'blue',
-                       fillOpacity = 1, weight = 2, popup = ~pop,
-                       group = 'comp2') %>%
-      addCircleMarkers(data = rvs$occs, lat = ~latitude, lng = ~longitude,
-                       radius = 5, color = 'red', fillColor = 'red',
-                       fillOpacity = 1, weight = 2, popup = ~pop,
-                       group = 'comp2') %>%
-      addLegend("bottomright", colors = c('red', 'blue'),
-                title = "Occ Records", labels = c('retained', 'removed'),
-                opacity = 1, layerId = 'leg')
-    shinyjs::enable("dlProcOccs")
-  })
-  
-  # handle download for thinned records csv
-  output$dlProcOccs <- downloadHandler(
-    filename = function() {ifelse(rvs$comp1 == 'csv', 
-                                  "user_processed_occs.csv", 
-                                  paste0(formatSpName(spName()), "_processed_occs.csv"))},
-    content = function(file) {
-      # thinned_rowNums <- as.numeric(thinOccs()$occID)
-      # origThinned <- rvs$occsOrig[thinned_rowNums,]
-      write_csv_robust(rvs$occs %>% dplyr::select(-pop), file, row.names = FALSE)
-    }
-  )
-  
-  # Reset Occs button functionality
-  observeEvent(input$goResetOccs, {
-    rvs$occs <- rvs$occsPreProc  
-    # reset for RMD
-    rvs$comp2 <- NULL
-    rvs %>% writeLog("Reset occurrences.")
-    map %>%
-      clearMarkers() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-  })
-  
-  ############################################# #
-  ### COMPONENT 3: OBTAIN ENVIRONMENTAL DATA ####
-  ############################################# #
-  
-  # map center coordinates for 30 arcsec download
-  mapCntr <- reactive(mapCenter(input$map_bounds))
-  
-  output$ctrLatLon <- renderText({
-    paste('Using map center', paste(mapCntr(), collapse=', '))
-  })
-  
-  # module WorldClim Bioclims
-  wcBioclims <- callModule(wcBioclims_MOD, 'c3_wcBioclims', rvs, mapCntr)
-  
-  observeEvent(input$goEnvData, {
-    # load into envs
-    rvs$envs <- wcBioclims()
-    # stop if no occurrence data
-    req(rvs$occs)
-    req(rvs$envs)
-    # record for RMD
-    rvs$comp3 <- 'bc'
-    # remove occurrences with NA values for variables
-    rvs$occs <- remEnvsValsNA(rvs)
-    # MAPPING - Plot the remaining occs after of removing NA
-    map %>%
-      clearMarkers() %>%
-      clearControls() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-    # switch to Results tab
-    updateTabsetPanel(session, 'main', selected = 'Results')
-    # enable download button
-    # shinyjs::enable("dlEnvs")
-  })
-  
-  # module User-defined Environmental Predictors
-  userEnvs <- callModule(userEnvs_MOD, 'c3_userEnvs', rvs)
-  
-  observeEvent(input$goUserEnvs, {
-    rvs$envs <- userEnvs()
-    # stop if no occurrence data
-    req(rvs$occs)
-    # record for RMD
-    rvs$comp3 <- 'user'
-    # remove occurrences with NA values for variables
-    rvs$occs <- remEnvsValsNA(rvs)
-    # make project to new time module unavailable for user envs
-    updateRadioButtons(session, "projSel", 
-                       choices = list("Project to New Extent" = 'projArea',
-                                      "Calculate Environmental Similarity" = 'mess'))
-    # MAPPING - Plot the remaining occs after of removing NA
-    map %>%
-      clearMarkers() %>%
-      map_plotLocs(rvs$occs) %>%
-      zoom2Occs(rvs$occs)
-    # switch to Results tab
-    updateTabsetPanel(session, 'main', selected = 'Results')
-  })
-  
-  output$envsPrint <- renderPrint({
-    req(rvs$envs)
-    rvs$envs
-    # mins <- sapply(envs()@layers, function(x) x@data@min)
-    # maxs <- sapply(envs()@layers, function(x) x@data@max)
-    # names <- sapply(strsplit(names(envs()), '[.]'), function(x) x[-2])
-    # mins <- round(cellStats(envs(), stat = min), digits = 3)
-    # maxs <- round(cellStats(envs(), stat = max), digits = 3)
-    # DT::datatable(data.frame(name=names, min=mins, max=maxs), 
-    #               rownames = FALSE, options = list(pageLength = raster::nlayers(envs())))
-  })
-  
-  ############################################## #
-  ### COMPONENT 4: PROCESS ENVIRONMENTAL DATA ####
-  ############################################## #
-  
-  # module Background Extent
-  bgExt <- callModule(bgExtent_MOD, 'c4_bgExtent', rvs)
-  
-  bgShpXY <- reactive({
-    polys <- rvs$bgShp@polygons[[1]]@Polygons
-    if (length(polys) == 1) {
-      xy <- list(rvs$bgShp@polygons[[1]]@Polygons[[1]]@coords)
+
+  # # # # # # # # # # # # # # # # # #
+  # OBTAIN OCCS: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  output$curSpUI <- renderUI({
+    # check that a species is in the list already -- if not, don't proceed
+    req(length(reactiveValuesToList(spp)) > 0)
+    # get the species names
+    n <- names(spp)[order(names(spp))]
+    # remove multispecies names from list
+    n <- n[!grepl(".", n, fixed = TRUE)]
+    # if no current species selected, select the first name
+    # NOTE: this line is necessary to retain the selection after selecting different tabs
+    if(!is.null(curSp())) selected <- curSp() else selected <- n[1]
+    # if espace component, allow for multiple species selection
+    if(component() == 'espace') options <- list(maxItems = 2) else options <- list(maxItems = 1)
+    # make a named list of their names
+    sppNameList <- c(list("Current species" = ""), setNames(as.list(n), n))
+    # generate a selectInput ui that lists the available species
+    if (is.null(module())) {
+      span("...Select a module...", class = "step")
     } else {
-      xy <- sapply(polys, function(x) x@coords)
+      selectizeInput('curSp', label = "Species menu", choices = sppNameList,
+                     multiple = TRUE, selected = selected, options = options)
+    }
+  })
+
+  curSp <- reactive(input$curSp)
+
+  # vector of all species with occurrence data loaded
+  allSp <- reactive(sort(names(reactiveValuesToList(spp))[!grepl("\\.", names(reactiveValuesToList(spp)))]))
+
+  # vector of all species with occurrence data loaded
+  multSp <- reactive(sort(names(reactiveValuesToList(spp))[grepl("\\.", names(reactiveValuesToList(spp)))]))
+
+  # convenience function for occurrence table for current species
+  occs <- reactive(spp[[curSp()]]$occs)
+  # convenience function for metadata list for current species
+  rmm <- reactive(spp[[curSp()]]$rmm)
+
+  # TABLE
+  # options <- list(autoWidth = TRUE, columnDefs = list(list(width = '40%', targets = 7)),
+  #                 scrollX=TRUE, scrollY=400)
+  output$occTbl <- DT::renderDataTable({
+    # check if spp has species in it
+    req(length(reactiveValuesToList(spp)) > 0)
+    occs() %>%
+      dplyr::mutate(occID = as.numeric(occID),
+                    longitude = round(as.numeric(longitude), digits = 2),
+                    latitude = round(as.numeric(latitude), digits = 2)) %>%
+      dplyr::select(-pop) %>%
+      dplyr::arrange(occID)
+  }, rownames = FALSE, options = list(scrollX = TRUE))
+
+  # DOWNLOAD: current species occurrence data table
+  output$dlOccs <- downloadHandler(
+    filename = function() {
+      n <- fmtSpN(curSp())
+      source <- rmm()$data$occurrence$sources
+      glue("{n}_{source}.csv")
+    },
+    content = function(file) {
+      tbl <- occs() %>%
+        dplyr::select(-c(pop, occID))
+      # if bg values are present, add them to table
+      if(!is.null(bg())) {
+        tbl <- rbind(tbl, bg())
+      }
+      write_csv_robust(tbl, file, row.names = FALSE)
+    }
+  )
+
+  # DOWNLOAD: all species occurrence data table
+  output$dlAllOccs <- downloadHandler(
+    filename = function(){"multispecies_ocurrence_table.csv"},
+    content = function(file) {
+      l <- lapply(allSp(), function(x) {
+        data.frame(spp[[x]]$occData$occsCleaned, stringsAsFactors = FALSE)
+      })
+      tbl <- dplyr::bind_rows(l)
+      tbl <- tbl %>% dplyr::select(-pop)
+      write_csv_robust(tbl, file, row.names = FALSE)
+    }
+  )
+
+  # DOWNLOAD: occsOrig
+  output$dlDbOccs <- downloadHandler(
+    filename = function() {
+      n <- fmtSpN(curSp())
+      source <- rmm()$data$occurrence$sources
+      glue("{n}_{source}_raw.csv")
+    },
+    content = function(file) {
+      write_csv_robust(spp[[curSp()]]$occData$occsOrig, file, row.names = FALSE)
+    }
+  )
+
+  ############################################# #
+  ### COMPONENT: OBTAIN ENVIRONMENTAL DATA ####
+  ############################################# #
+
+  # # # # # # # # # # # # # # # # # #
+  # OBTAIN ENVS: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  bcSel <- reactive(input$bcSel)
+  ecoClimSel <- reactive(input$ecoClimSel)
+  VarSelector <- reactive(input$VarSelector)
+  # shortcut to currently selected environmental variable, read from curEnvUI
+  curEnv <- reactive(input$curEnv)
+
+  # convenience function for environmental variables for current species
+  envs <- reactive({
+    req(curSp(), spp[[curSp()]]$envs)
+    envs.global[[spp[[curSp()]]$envs]]
+  })
+
+  # map center coordinates for 30 arcsec download
+  mapCntr <- reactive({
+    req(occs())
+    round(c(mean(occs()$longitude), mean(occs()$latitude)), digits = 3)
+  })
+
+  # CONSOLE PRINT
+  output$envsPrint <- renderPrint({
+    req(envs())
+    envs()
+  })
+
+  output$dlGlobalEnvs <- downloadHandler(
+    filename = function() paste0(spp[[curSp()]]$envs, '_envs.zip'),
+    content = function(file) {
+      withProgress(
+        message = paste0("Preparing ", paste0(spp[[curSp()]]$envs, '_envs.zip ...')), {
+          tmpdir <- tempdir()
+          owd <- setwd(tmpdir)
+          on.exit(setwd(owd))
+          type <- input$globalEnvsFileType
+          nm <- names(envs.global[[spp[[curSp()]]$envs]])
+
+          raster::writeRaster(envs.global[[spp[[curSp()]]$envs]], nm, bylayer = TRUE,
+                              format = type, overwrite = TRUE)
+          ext <- switch(type, raster = 'grd', ascii = 'asc', GTiff = 'tif')
+
+          fs <- paste0(nm, '.', ext)
+          if (ext == 'grd') {
+            fs <- c(fs, paste0(nm, '.gri'))
+          }
+          zip::zipr(zipfile = file, files = fs)
+          if (file.exists(paste0(file, ".zip"))) file.rename(paste0(file, ".zip"), file)
+        })
+    },
+    contentType = "application/zip"
+  )
+
+  ########################################### #
+  ### COMPONENT: PROCESS OCCURRENCE DATA ####
+  ########################################### #
+
+  # # # # # # # # # # # # # # # # # #
+  # PROCESS OCCS: other controls ####
+  # # # # # # # # # # # # # # # # # #
+  # DOWNLOAD: current processed occurrence data table
+  output$dlProcOccs <- downloadHandler(
+    filename = function() paste0(curSp(), "_processed_occs.csv"),
+    content = function(file) {
+      tbl <- occs() %>% dplyr::select(-pop)
+      write_csv_robust(tbl, file, row.names = FALSE)
+    }
+  )
+
+  ############################################## #
+  ### COMPONENT: PROCESS ENVIRONMENTAL DATA ####
+  ############################################## #
+
+  # # # # # # # # # # # # # # # # # #
+  # PROCESS ENVS: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  # convenience function for background points table for current species
+  bg <- reactive(spp[[curSp()]]$bg)
+  # convenience function for background polygon for current species
+  bgExt <- reactive(spp[[curSp()]]$procEnvs$bgExt)
+  # convenience function for environmental variable rasters masked to background for current species
+  bgMask <- reactive(spp[[curSp()]]$procEnvs$bgMask)
+
+  # get the coordinates of the current background extent shape
+  bgShpXY <- reactive({
+    req(bgExt())
+    polys <- bgExt()@polygons[[1]]@Polygons
+    if (length(polys) == 1) {
+      xy <- list(polys[[1]]@coords)
+    } else{
+      xy <- lapply(polys, function(x) x@coords)
     }
     return(xy)
   })
-  
-  observeEvent(input$goBgExt, {
-    rvs$bgShp <- bgExt()
-    # stop if no environmental variables
-    req(rvs$envs)
-    map %>% clearShapes()
-    for (shp in bgShpXY()) {
-      map %>%
-        addPolygons(lng=shp[,1], lat=shp[,2],
-                    weight=4, color="gray", group='bgShp')  
-    }
-    map %>%
-      fitBounds(rvs$bgShp@bbox[1], rvs$bgShp@bbox[2], rvs$bgShp@bbox[3], rvs$bgShp@bbox[4])
-  })
-  
-  # module User-defined Background Extent
-  userBg <- callModule(userBgExtent_MOD, 'c4_userBgExtent', rvs)
-  
-  observeEvent(input$goUserBg, {
-    rvs$bgShp <- userBg()
-    # stop if no environmental variables
-    req(rvs$envs)
-    req(rvs$bgShp)
-    coords <- rvs$bgShp@polygons[[1]]@Polygons[[1]]@coords
-    map %>% clearShapes()
-    for (shp in bgShpXY()) {
-      map %>%
-        addPolygons(lng=shp[,1], lat=shp[,2],
-                    weight=4, color="gray", group='bgShp')  
-    }
-    map %>%
-      fitBounds(rvs$bgShp@bbox[1], rvs$bgShp@bbox[2], rvs$bgShp@bbox[3], rvs$bgShp@bbox[4])
-  })
-  
-  # module Background Mask and Sample Points
-  observeEvent(input$goBgMask, {
-    bgMskPts.call <- callModule(bgMskAndSamplePts_MOD, 'c4_bgMskAndSamplePts', rvs)
-    bgMskPts <- bgMskPts.call()
-    # stop if no background shape
-    req(rvs$bgShp)
-    rvs$bgMsk <- bgMskPts$msk
-    rvs$bgPts <- bgMskPts$pts
-    shinyjs::enable('dlMskEnvs')
-  })
-  
-  # handle download for masked predictors, with file type as user choice
+
+  # DOWNLOAD: masked environmental variable rasters
+  output$dlBgShp <- downloadHandler(
+    filename = function() paste0(curSp(), "_bgShp.zip"),
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      n <- curSp()
+
+      rgdal::writeOGR(obj = bgExt(),
+                      dsn = tmpdir,
+                      layer = paste0(n, '_bgShp'),
+                      driver = "ESRI Shapefile",
+                      overwrite_layer = TRUE)
+
+      exts <- c('dbf', 'shp', 'shx')
+      fs <- paste0(n, '_bgShp.', exts)
+      zip::zipr(zipfile = file, files = fs)
+      if (file.exists(paste0(file, ".zip"))) {
+        file.rename(paste0(file, ".zip"), file)}
+    },
+    contentType = "application/zip"
+  )
+
+  # DOWNLOAD: masked environmental variable rasters
   output$dlMskEnvs <- downloadHandler(
-    filename = function() {'mskEnvs.zip'},
+    filename = function() paste0(curSp(), '_mskEnvs.zip'),
     content = function(file) {
       tmpdir <- tempdir()
       owd <- setwd(tmpdir)
       on.exit(setwd(owd))
       type <- input$bgMskFileType
-      nm <- names(rvs$bgMsk)
-      
-      raster::writeRaster(rvs$bgMsk, file.path(tmpdir, 'msk'), bylayer = TRUE,
-                          suffix = nm, format = type, overwrite = TRUE)
+      nm <- names(envs())
+
+      raster::writeRaster(bgMask(), nm, bylayer = TRUE,
+                          format = type, overwrite = TRUE)
       ext <- switch(type, raster = 'grd', ascii = 'asc', GTiff = 'tif')
-      
-      fs <- paste0('msk_', nm, '.', ext)
+
+      fs <- paste0(nm, '.', ext)
       if (ext == 'grd') {
-        fs <- c(fs, paste0('msk_', nm, '.gri'))
+        fs <- c(fs, paste0(nm, '.gri'))
       }
-      zip::zip(zipfile=file, files=fs)
+      zip::zipr(zipfile = file, files = fs)
       if (file.exists(paste0(file, ".zip"))) {file.rename(paste0(file, ".zip"), file)}
     },
     contentType = "application/zip"
   )
-  
-  
-  ############################################# #
-  ### COMPONENT 5: PARTITION OCCURRENCE DATA ####
-  ############################################# #
-  
-  # module Non-spatial Occurrence Partitions
-  partNsp.call <- callModule(partNsp_MOD, 'c5_partNsp', rvs)
-  observeEvent(input$goPartNsp, {
-    partNsp <- partNsp.call()
-    # stop if no background mask
-    req(rvs$bgMsk)
-    rvs$occsGrp <- partNsp[[1]]
-    rvs$bgGrp <- partNsp[[2]]
-    map %>% comp5_map(rvs$occs, rvs$occsGrp)
-    shinyjs::enable("dlPart")
-  })
 
-  # module Spatial Occurrence Partitions
-  partSp.call <- callModule(partSp_MOD, 'c5_partSp', rvs)  
-  observeEvent(input$goPartSp, {
-    partSp <- partSp.call()
-    # stop if no background mask
-    req(rvs$bgMsk)
-    rvs$occsGrp <- partSp[[1]]
-    rvs$bgGrp <- partSp[[2]]
-    map %>% comp5_map(rvs$occs, rvs$occsGrp)
-    shinyjs::enable("dlPart")
-  })
-  
+  # DOWNLOAD: background points table
+  output$dlBgPts <- downloadHandler(
+    filename = function() {
+      n <- curSp()
+      paste0(n, "_bgPoints.csv")
+    },
+    content = function(file) {
+      tbl <- as.data.frame(spp[[curSp()]]$bgPts)
+      write_csv_robust(tbl, file, row.names = FALSE)
+    }
+  )
+
+  ############################################## #
+  ### COMPONENT: ESPACE ####
+  ############################################## #
+
+  output$dlPcaResults <- downloadHandler(
+    filename = function() {
+      mspName <- paste(curSp(), collapse = ".")
+      paste0(mspName, "_PcaResults.zip")
+    },
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      if (length(curSp()) == 2) {
+        mSp <- paste(curSp(), collapse = ".")
+        sp1 <- curSp()[1]
+        sp2 <- curSp()[2]
+      } else {
+        mSp <- curSp()
+      }
+      req(spp[[mSp]]$pca)
+      png(paste0("pcaScatterOccs.png"), width = 500, height = 500)
+      x <- spp[[mSp]]$pca$scores[spp[[mSp]]$pca$scores$bg == 'sp', ]
+      x.f <- factor(x$sp)
+      ade4::s.class(x, x.f, xax = spp[[mSp]]$pc1, yax = spp[[mSp]]$pc2,
+                    col = c("red", "blue"), cstar = 0, cpoint = 0.1)
+      title(xlab = paste0("PC", spp[[mSp]]$pc1),
+            ylab = paste0("PC", spp[[mSp]]$pc2))
+      dev.off()
+      png(paste0("pcaScatterOccsBg.png"), width = 500, height = 500)
+      x <- spp[[mSp]]$pca$scores[spp[[mSp]]$pca$scores$sp == 'bg', ]
+      x.f <- factor(x$bg)
+      ade4::s.class(x, x.f, xax = spp[[mSp]]$pc1, yax = spp[[mSp]]$pc2,
+                    col = c("red", "blue"), cstar = 0, cpoint = 0.1)
+      title(xlab = paste0("PC", spp[[mSp]]$pc1),
+            ylab = paste0("PC", spp[[mSp]]$pc2))
+      dev.off()
+      png(paste0("pcaCorCircle.png"), width = 500, height = 500)
+      ade4::s.corcircle(spp[[mSp]]$pca$co, xax = spp[[mSp]]$pc1,
+                        yax = spp[[mSp]]$pc2, lab = input$pcaSel,
+                        full = FALSE, box = TRUE)
+      title(xlab = paste0("PC", spp[[mSp]]$pc1),
+            ylab = paste0("PC", spp[[mSp]]$pc2))
+      dev.off()
+      png(paste0("pcaScree.png"), width = 500, height = 500)
+      screeplot(spp[[mSp]]$pca, main = NULL)
+      dev.off()
+      sink(paste0("pcaOut.txt"))
+      print(summary(spp[[mSp]]$pca))
+      sink()
+
+      fs <- c("pcaScatterOccs.png", "pcaScatterOccsBg.png",
+            "pcaCorCircle.png","pcaScree.png","pcaOut.txt")
+      zip::zipr(zipfile = file,
+                files = fs)
+    }
+  )
+
+  output$dlOccDens <- downloadHandler(
+    filename = function() {
+      mspName <- paste(curSp(), collapse = ".")
+      paste0(mspName, "_occDens.png")
+    },
+    content = function(file) {
+      png(file, width = 1000, height = 500)
+      graphics::par(mfrow=c(1,2))
+      if (length(curSp()) == 2) {
+        mSp <- paste(curSp(), collapse = ".")
+        sp1 <- curSp()[1]
+        sp2 <- curSp()[2]
+      } else {
+        mSp <- curSp()
+      }
+      req(spp[[mSp]]$occDens)
+      ecospat::ecospat.plot.niche(spp[[mSp]]$occDens[[sp1]], title = spName(sp1))
+      ecospat::ecospat.plot.niche(spp[[mSp]]$occDens[[sp2]], title = spName(sp2))
+      dev.off()
+    }
+  )
+
+  output$dlNicheOvPlot <- downloadHandler(
+    filename = function() {
+      mSp <- paste(curSp(), collapse = ".")
+      paste0(mSp, "_nicheOvPlot.png")
+    },
+    content = function(file) {
+      png(file, width = 1000, height = 500)
+      graphics::par(mfrow = c(1, 2))
+      if (length(curSp()) == 2) {
+        mSp <- paste(curSp(), collapse = ".")
+        sp1 <- curSp()[1]
+        sp2 <- curSp()[2]
+      } else {
+        mSp <- curSp()
+      }
+      req(spp[[mSp]]$occDens)
+      ecospat::ecospat.plot.niche.dyn(
+        spp[[mSp]]$occDens[[sp1]],
+        spp[[mSp]]$occDens[[sp2]],
+        0.5,
+        title = mSp,
+        col.unf = "blue",
+        col.exp = "red",
+        col.stab = "purple",
+        colZ1 = "blue",
+        colZ2 = "red",
+        transparency = 25
+      )
+      box()
+      req(spp[[mSp]]$nicheOv)
+      # if (!is.null(spp[[mSp]]$nicheOv$equiv))
+      #   ecospat::ecospat.plot.overlap.test(spp[[mSp]]$nicheOv$equiv,
+      #                                      "D", "Equivalency test")
+      if (!is.null(spp[[mSp]]$nicheOv$simil))
+        ecospat::ecospat.plot.overlap.test(spp[[mSp]]$nicheOv$simil,
+                                           "D", "Similarity test")
+      ovMetrics <- paste(
+        "Overlap D = ", round(spp[[mSp]]$nicheOv$overlap$D, 2),
+        " | Sp1 only :", round(spp[[mSp]]$nicheOv$USE[3], 2),
+        " | Sp2 only :", round(spp[[mSp]]$nicheOv$USE[1], 2),
+        " | Both :", round(spp[[mSp]]$nicheOv$USE[2], 2)
+      )
+      graphics::mtext(ovMetrics, outer = TRUE, line = -1)
+      dev.off()
+    }
+  )
+
+  ################################################## #
+  ### COMPONENT: PARTITION OCCURRENCE DATA ####
+  ################################################# #
+
   # download for partitioned occurrence records csv
   output$dlPart <- downloadHandler(
-    filename = function() paste0(spName(), "_partitioned_occs.csv"),
+    filename = function() paste0(curSp(), "_partitioned_occs.csv"),
     content = function(file) {
-      bg.bind <- data.frame(rep('background', nrow(rvs$bgPts)), rvs$bgPts)
-      names(bg.bind) <- c('name', 'longitude', 'latitude')
-      occs.bg.bind <-rbind(rvs$occs[,1:3], bg.bind)
-      all.bind <- cbind(occs.bg.bind, c(rvs$occsGrp, rvs$bgGrp))
+      bg.bind <- data.frame(rep('background',
+                                nrow(spp[[curSp()]]$bgPts)), spp[[curSp()]]$bgPts)
+      names(bg.bind) <- c('scientific_name', 'longitude', 'latitude')
+      occs.bg.bind <- rbind(spp[[curSp()]]$occs[, 2:4], bg.bind)
+      all.bind <- cbind(occs.bg.bind, c(spp[[curSp()]]$occs$partition,
+                                        spp[[curSp()]]$bg$partition))
       names(all.bind)[4] <- "group"
       write_csv_robust(all.bind, file, row.names = FALSE)
     }
   )
-  
+
   ######################### #
-  ### COMPONENT 6: MODEL ####
+  ### COMPONENT: MODEL ####
   ######################### #
 
-  # module Maxent
-  mod.maxent <- callModule(maxent_MOD, 'c6_maxent', rvs)
-  
-  observeEvent(input$goMaxent, {
-    # stop if no occurrence partition group
-    req(rvs$occsGrp)
-    # get model evaluations
-    e <- mod.maxent()
-    # if e is NULL, let the c6_maxent module throw the proper error and stop
-    req(e)
-    rvs$comp6 <- 'maxent'  # record the enm selected
-    rvs$mods <- e@models
-    rvs$modPreds <- e@predictions
-    rvs$modRes <- e@results
-    rvs$modPart <- e@results.partitions
-    # x <- callModule(mapPreds_MOD, 'c7_mapPreds', rvs)
-    
-    ncols.Res <- ncol(rvs$modRes)
-    modRes.round <- cbind(rvs$modRes[, 1:3], 
-                          round(rvs$modRes[, 4:ncols.Res], digits = 3))
-    ncols.Part <- ncol(rvs$modPart)
-    modPart.round <- cbind(rvs$modPart[, 1:2], 
-                           round(rvs$modPart[, 3:ncols.Part], digits = 3))
-    # render both full model and partition avg datatable, and individual partition datatable
-    output$evalTbl <- DT::renderDataTable(modRes.round, 
-                                          options = list(scrollX = TRUE,
-                                                         sDom  = '<"top">rtp<"bottom">'))
-    output$evalTblBins <- DT::renderDataTable(modPart.round, 
-                                              options = list(scrollX = TRUE,
-                                                             sDom  = '<"top">rtp<"bottom">'))
-    output$lambdas <- renderPrint({
-      modCur <- rvs$mods[[as.character(rvs$modSel)]]
-      if (rvs$algMaxent == "maxnet") {
-        modCur$betas
-      } else if (rvs$algMaxent == "maxent.jar") {
-        modCur@lambdas
-      }
-    })
-    shinyjs::show(id = "evalTblBins")
-    
-    output$evalTbls <- renderUI({
-      tabsetPanel(
-        tabPanel("Evaluation", 
-                 tagList(
-                   br(),
-                   div("Full model and partition bin average evaluation statistics", id="stepText"), br(), br(),
-                   DT::dataTableOutput('evalTbl'), br(), 
-                   div("Individual partition bin evaluation statistics", id="stepText"), br(), br(),
-                   DT::dataTableOutput('evalTblBins')  
-                 )),
-        tabPanel("Lambdas",
-                 br(),
-                 div("Maxent Lambdas File", id="stepText"), br(), br(),
-                 verbatimTextOutput("lambdas")
-                 )
-      )
-      
-    })
-    
-    # switch to Results tab
-    updateTabsetPanel(session, 'main', selected = 'Results')
-    # customize visualizations for maxent
-    updateRadioButtons(session, "visSel", 
-                       choices = list("Maxent Evaluation Plots" = 'mxEval',
-                                      "Plot Response Curves" = 'response',
-                                      "Map Prediction" = 'map'))
+  # # # # # # # # # # # # # # # # # #
+  # MODEL: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  # convenience function for modeling results list for current species
+  evalOut <- reactive(spp[[curSp()]]$evalOut)
+
+  # ui that populates with the names of models that were run
+  output$curModelUI <- renderUI({
+    # do not display until both current species is selected and it has a model
+    req(curSp(), length(curSp()) == 1, evalOut())
+    # if
+    if(!is.null(evalOut())) {
+      n <- names(evalOut()@models)
+    } else {
+      n <- NULL
+    }
+    # NOTE: this line is necessary to retain the selection after selecting different tabs
+    if(!is.null(curModel())) selected <- curModel() else selected <- n[1]
+    modsNameList <- c(list("Current model" = ""), setNames(as.list(n), n))
+    options <- list(maxItems = 1)
+    if (!is.null(module())) {
+      selectizeInput('curModel', label = "Select model: " ,
+                     choices = modsNameList, multiple = TRUE,
+                     selected = selected, options = options)
+    }
   })
-  
-  # module BIOCLIM
-  mod.bioclim <- callModule(bioclim_MOD, 'c6_bioclim', rvs)
-  
-  observeEvent(input$goBioclim, {
-    e <- mod.bioclim()
-    # stop if no occurrence partition group
-    req(rvs$occsGrp)
-    rvs$comp6 <- 'bioclim'  # record the enm selected
-    rvs$mods <- e@models
-    rvs$modPreds <- e@predictions
-    rvs$modRes <- e@results
-    rvs$modPart <- e@results.partitions
-    output$evalTbl <- DT::renderDataTable(round(rvs$modRes, digits = 3), 
-                                          options = list(scrollX = TRUE, 
-                                                         sDom  = '<"top">rtp<"bottom">'))
-    output$evalTblBins <- DT::renderDataTable(
-      round(rvs$modPart[, 2:ncol(rvs$modPart)], digits = 3),
-      options = list(scrollX = TRUE, sDom  = '<"top">rtp<"bottom">'))
-    output$evalTbls <- renderUI({
-      tagList(
-        br(),
-        div("Full model and partition bin average evaluation statistics", 
-            id = "stepText"), br(), br(),
-        DT::dataTableOutput('evalTbl'), br(), 
-        div("Individual partition bin evaluation statistics", 
-            id = "stepText"), br(), br(),
-        DT::dataTableOutput('evalTblBins') 
-      )
-    })
-    # switch to Results tab
-    updateTabsetPanel(session, 'main', selected = 'Results')
-    updateRadioButtons(session, "visSel", 
-                       choices = list("BIOCLIM Envelope Plots" = 'bcPlots',
-                                      "Map Prediction" = 'map'))
-    shinyjs::show(id = "evalTblBins")
+
+  # shortcut to currently selected model, read from modSelUI
+  curModel <- reactive(input$curModel)
+
+  # picker option to select categorical variables
+  output$catEnvs <- renderUI({
+    req(curSp(), occs(), envs())
+    if(!is.null(envs())) {
+      n <- c(names(envs()))
+    } else {
+      n <- NULL
+    }
+    envList <- setNames(as.list(n), n)
+    shinyWidgets::pickerInput(
+      "selCatEnvs",
+      label = "Select categorical variables",
+      choices = envList,
+      multiple = TRUE)
   })
-  
+
+  selCatEnvs <- reactive(input$selCatEnvs)
+
   # download for partitioned occurrence records csv
   output$dlEvalTbl <- downloadHandler(
     filename = function() {
-      if (rvs$comp6 == "bioclim") {
-        paste0(spName(), "_bioclim_evalTbl.csv")  
-      } else if (rvs$comp6 == "maxent") {
-        paste0(spName(), "_maxent_evalTbl.csv")  
+      if(spp[[curSp()]]$rmm$model$algorithms == "BIOCLIM") {
+        paste0(curSp(), "_bioclim_evalTbl.csv")
+      } else if(spp[[curSp()]]$rmm$model$algorithms == "maxent.jar") {
+        paste0(curSp(), "_maxent_evalTbl.csv")
+      } else if(spp[[curSp()]]$rmm$model$algorithms == "maxnet") {
+        paste0(curSp(), "_maxnet_evalTbl.csv")
       }
     },
     content = function(file) {
-      write_csv_robust(rvs$modRes, file, row.names = FALSE)
+      evalTbl <- spp[[curSp()]]$evalOut@results
+      write_csv_robust(evalTbl, file, row.names = FALSE)
     }
   )
-  
-  ########################################### #
-  ### COMPONENT 7: VISUALIZE MODEL RESULTS ####
-  ########################################### #
-  
-  # ui that populates with the names of models that were run
-  output$modSelUI <- renderUI({
-    req(rvs$modPreds)
-    n <- names(rvs$modPreds)
-    modsNameList <- setNames(as.list(n), n)
-    selectInput('modSel', label = "Current Model",
-                choices = modsNameList, selected = modsNameList[[1]])
-  })
-  
-  # ui that populates with the names of environmental predictors used
-  output$envSelUI <- renderUI({
-    req(rvs$modPreds)
-    req(rvs$modSel)
-    # for Maxent, only display the environmental predictors with non-zero beta coefficients
-    # from the lambdas file (the predictors that were not removed via regularization)
-    if (rvs$comp6 == "maxent") {
-      modCur <- rvs$mods[[rvs$modSel]]
-      if (rvs$algMaxent == "maxnet") {
-        nonZeroCoefs <- mxNonzeroCoefs(modCur, alg = "maxnet")
-      } else if(rvs$algMaxent == "maxent.jar") {
-        nonZeroCoefs <- mxNonzeroCoefs(modCur, alg = "maxent.jar")
+
+  # download for partitioned occurrence records csv
+  output$dlEvalTblBins <- downloadHandler(
+    filename = function() {
+      if(spp[[curSp()]]$rmm$model$algorithms == "BIOCLIM") {
+        paste0(curSp(), "_bioclim_evalTblBins.csv")
+      } else if(spp[[curSp()]]$rmm$model$algorithms == "maxent.jar") {
+        paste0(curSp(), "_maxent_evalTblBins.csv")
+      } else if(spp[[curSp()]]$rmm$model$algorithms == "maxnet") {
+        paste0(curSp(), "_maxnet_evalTblBins.csv")
       }
-      envsNames <- names(rvs$bgMsk[[nonZeroCoefs]])
-      rvs$mxNonZeroCoefs <- envsNames
-    } else {
-      envsNames <- names(rvs$bgMsk)
+    },
+    content = function(file) {
+      evalTblBins <- spp[[curSp()]]$evalOut@results.partitions
+      write_csv_robust(evalTblBins, file, row.names = FALSE)
     }
-    envsNamesList <- setNames(as.list(envsNames), envsNames)
-    selectInput("envSel", "Current Env Variable",
-                choices = envsNamesList, selected = envsNamesList[[1]])
-  })
-  
-  # always update the selected model and environmental predictor in rvs
-  observe({
-    rvs$modSel <- input$modSel
-    rvs$envSel <- input$envSel
-  })
-  
-  # module BIOCLIM Plots
-  bcPlots <- callModule(bcPlots_MOD, 'c7_bcPlots', rvs)
-  output$bcEnvelPlot <- renderPlot({
-    bcPlots()
-  })
-  
-  # module Maxent Evaluation Plots
-  mxEvalPlots <- callModule(mxEvalPlots_MOD, 'c7_mxEvalPlots', rvs)
-  output$mxEvalPlots <- renderPlot({
-    mxEvalPlots()
-    updateTabsetPanel(session, 'main', selected = 'Results')
-  })
-  
-  # module Response Curve Plots
-  respPlots <- callModule(respPlots_MOD, 'c7_respPlots', rvs)
-  output$respPlots <- renderPlot({
-    respPlots()
-    updateTabsetPanel(session, 'main', selected = 'Results')
-  })
-  
-  # module Map Prediction (restricted to background extent)
-  observeEvent(input$goMapPreds, {
-    if (rvs$comp6 == 'maxent') {
-      mapPreds <- callModule(mapPredsMaxent_MOD, 'c7_mapPredsMaxent', rvs)
-    } else {
-      mapPreds <- callModule(mapPreds_MOD, 'c7_mapPreds', rvs)
+  )
+
+
+  ########################################### #
+  ### COMPONENT: VISUALIZE MODEL RESULTS ####
+  ########################################### #
+
+  # # # # # # # # # # # # # # # # # #
+  # VISUALIZE: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  # convenience function for mapped model prediction raster for current species
+  mapPred <- reactive(spp[[curSp()]]$visualization$mapPred)
+
+  # handle downloads for BIOCLIM Plots png
+  output$dlVisBioclim <- downloadHandler(
+    filename = function() {paste0(curSp(), "_bioClimPlot.png")},
+    content = function(file) {
+      png(file)
+      vis_bioclimPlot(evalOut()@models[[curModel()]],
+                      spp[[curSp()]]$rmm$code$wallace$bcPlotSettings[['bc1']],
+                      spp[[curSp()]]$rmm$code$wallace$bcPlotSettings[['bc2']],
+                      spp[[curSp()]]$rmm$code$wallace$bcPlotSettings[['p']])
+      dev.off()
     }
-    # stop if mapPreds is NULL
-    rvs$predCur <- mapPreds()
-    req(rvs$predCur)
-    
-    # stop if no models
-    req(rvs$mods)
-    rvs$predCurVals <- getVals(rvs$predCur, rvs$comp7.type)
-    updateTabsetPanel(session, 'main', selected = 'Map')
-    
-    # MAPPING
-    if (rvs$comp7.thr != 'noThresh') {
-      rasPal <- c('gray', 'blue')
-      map %>% addLegend("bottomright", colors = c('gray', 'blue'),
-                        title = "Thresholded Suitability", labels = c("predicted absence", "predicted presence"),
-                        opacity = 1, layerId = 'leg')
-    } else {
-      rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
-      legendPal <- colorNumeric(rev(rasCols), rvs$predCurVals, na.color='transparent')
-      rasPal <- colorNumeric(rasCols, rvs$predCurVals, na.color='transparent')
-      map %>% addLegend("bottomright", pal = legendPal, title = "Predicted Suitability",
-                        values = rvs$predCurVals, layerId = 'leg',
-                        labFormat = reverseLabels(2, reverse_order=TRUE))
+  )
+
+  # handle downloads for Maxent Plots png
+  output$dlMaxentPlots <- downloadHandler(
+    filename = function() {paste0(curSp(), "_evalPlots.zip")},
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      parEval <- c('auc.val', 'auc.diff', 'or.mtp', 'or.10p', 'delta.AICc')
+      for (i in parEval) {
+        ENMeval::evalplot.stats(spp[[curSp()]]$evalOut, i, "rm", "fc")
+        ggplot2::ggsave(paste0(gsub("[[:punct:]]", "_", i), ".png"))
+        # dev.off()
+      }
+      fs <- paste0(gsub("[[:punct:]]", "_", parEval), ".png")
+      zip::zipr(zipfile = file,
+                files = fs)
     }
-    map %>% 
-      clearMarkers() %>% clearImages() %>% clearShapes() %>%
-      map_plotLocs(rvs$occs) %>%
-      addRasterImage(rvs$predCur, colors = rasPal, opacity = 0.7, 
-                     group = 'c7', layerId = 'r1ID', project = TRUE)
-    for (shp in bgShpXY()) {
-      map %>%
-        addPolygons(lng=shp[,1], lat=shp[,2], fill = FALSE,
-                    weight=4, color="red", group='c7')  
+  )
+
+  # handle downloads for Response Curve Plots png
+  output$dlRespCurves <- downloadHandler(
+    filename = function() {paste0(curSp(), "_responseCurves.zip")},
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      if (spp[[curSp()]]$rmm$model$algorithms == "maxnet") {
+        namesEnvs <- mxNonzeroCoefs(evalOut()@models[[curModel()]], "maxnet")
+        for (i in namesEnvs) {
+          png(paste0(i, ".png"))
+          suppressWarnings(
+            maxnet::response.plot(evalOut()@models[[curModel()]], v = i,
+                                  type = "cloglog")
+          )
+          dev.off()
+        }
+      } else if (spp[[curSp()]]$rmm$model$algorithms == "maxent.jar") {
+        namesEnvs <- mxNonzeroCoefs(evalOut()@models[[curModel()]], "maxent.jar")
+        for (i in namesEnvs) {
+          png(paste0( i, ".png"))
+          dismo::response(evalOut()@models[[curModel()]], var = i)
+          dev.off()
+        }
+      }
+      fs <- paste0(namesEnvs, ".png")
+      zip::zipr(zipfile = file, files = fs)
     }
-    shinyjs::enable("dlPred")
-  })
-  
+  )
+
   # download for model predictions (restricted to background extent)
   output$dlPred <- downloadHandler(
     filename = function() {
-      ext <- switch(input$predFileType, raster = 'zip', ascii = 'asc', GTiff = 'tif', png = 'png')
-      paste0(names(rvs$predCur), '.', ext)},
+      ext <- switch(input$predFileType, raster = 'zip', ascii = 'asc',
+                    GTiff = 'tif', png = 'png')
+      thresholdRule <- rmm()$prediction$binary$thresholdRule
+      predType <- rmm()$prediction$notes
+      if (thresholdRule == 'none') {
+        paste0(curSp(), "_", predType, '.', ext)
+      } else {
+        paste0(curSp(), "_", thresholdRule, '.', ext)
+      }
+    },
     content = function(file) {
-      # browser()
-      if (require(rgdal)) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      if(require(rgdal)) {
         if (input$predFileType == 'png') {
-          png(file)
-          raster::image(rvs$predCur)
-          dev.off()
+          req(mapPred())
+          if (!webshot::is_phantomjs_installed()) {
+            logger %>%
+              writeLog(type = "error", "To download PNG prediction, you're required to",
+                       " install PhantomJS in your machine. You can use webshot::install_phantomjs()",
+                       " in you are R console.")
+            return()
+          }
+          if (!requireNamespace("mapview")) {
+            logger %>%
+              writeLog(
+                type = "error",
+                "PNG option is available if you install the 'mapview' package ",
+                "(which is a suggested package for Wallace, not a required dependency). If you ",
+                "want to install it, close Wallace and run the following line in the ",
+                "R Console: ", em("install.packages('mapview')")
+              )
+            return()
+          }
+          if (rmm()$prediction$binary$thresholdRule != 'none') {
+            mapPredVals <- 0:1
+            rasPal <- c('gray', 'blue')
+            legendPal <- colorBin(rasPal, 0:1, bins = 2)
+            mapTitle <- "Thresholded Suitability<br>(Training)"
+            mapLabFormat <- function(type, cuts, p) {
+              n = length(cuts)
+              cuts[n] = "predicted presence"
+              for (i in 2:(n - 1)) {
+                cuts[i] = ""
+              }
+              cuts[1] = "predicted absence"
+              paste0(cuts[-n], cuts[-1])
+            }
+            mapOpacity <- 1
+          } else {
+            rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
+            mapPredVals <- spp[[curSp()]]$visualization$mapPredVals
+            rasPal <- colorNumeric(rasCols, mapPredVals, na.color='transparent')
+            legendPal <- colorNumeric(rev(rasCols), mapPredVals, na.color='transparent')
+            mapTitle <- "Predicted Suitability<br>(Training)"
+            mapLabFormat <- reverseLabel(2, reverse_order=TRUE)
+            mapOpacity <- NULL
+          }
+          m <- leaflet() %>%
+            addLegend("bottomright", pal = legendPal, title = mapTitle,
+                      labFormat = mapLabFormat, opacity = mapOpacity,
+                      values = mapPredVals, layerId = "train") %>%
+            addProviderTiles(input$bmap) %>%
+            addCircleMarkers(data = occs(), lat = ~latitude, lng = ~longitude,
+                             radius = 5, color = 'red', fill = TRUE, fillColor = 'red',
+                             fillOpacity = 0.2, weight = 2, popup = ~pop) %>%
+            addRasterImage(mapPred(), colors = rasPal, opacity = 0.7,
+                           group = 'vis', layerId = 'mapPred', method = "ngb") %>%
+            addPolygons(data = bgExt(), fill = FALSE, weight = 4, color = "blue",
+                        group='xfer')
+          mapview::mapshot(m, file = file)
         } else if (input$predFileType == 'raster') {
-          fileName <- names(rvs$predCur)
-          tmpdir <- tempdir()
-          raster::writeRaster(rvs$predCur, file.path(tmpdir, fileName), format = input$predFileType, overwrite = TRUE)
-          owd <- setwd(tmpdir)
+          fileName <- curSp()
+          raster::writeRaster(mapPred(), file.path(tmpdir, fileName),
+                              format = input$predFileType, overwrite = TRUE)
           fs <- paste0(fileName, c('.grd', '.gri'))
-          zip::zip(zipfile=file, files=fs)
-          setwd(owd)
+          zip::zipr(zipfile = file, files = fs)
         } else {
-          r <- raster::writeRaster(rvs$predCur, file, format = input$predFileType, overwrite = TRUE)
+          r <- raster::writeRaster(mapPred(), file, format = input$predFileType,
+                                   overwrite = TRUE)
           file.rename(r@file@name, file)
         }
       } else {
-        rvs %>% writeLog("Please install the rgdal package before downloading rasters.")
+        logger %>%
+          writeLog("Please install the rgdal package before downloading rasters.")
       }
     }
   )
-  
+
   ########################################### #
-  ### COMPONENT 8: PROJECT MODEL ####
+  ### COMPONENT: MODEL TRANSFER ####
   ########################################### #
-  
-  # module Project to New Area
-  projArea <- callModule(projectArea_MOD, 'c8_projectArea', rvs)
-  
-  observeEvent(input$goProjectArea, {
-    projArea.call <- projArea()
-    req(projArea.call)
-    # stop if no model prediction
-    req(rvs$predCur)
-    # unpack
-    rvs$projMsk <- projArea.call[[1]]
-    rvs$projCur <- projArea.call[[2]]
-    rvs$projCurVals <- getVals(rvs$projCur, rvs$comp7.type)
-    rvs$comp8.pj <- 'area'
-    
-    rasVals <- c(rvs$predCurVals, rvs$projCurVals)
-    rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
-    rasPal <- colorNumeric(rasCols, rvs$predCurVals, na.color='transparent')
-    
-    map %>% 
-      addRasterImage(rvs$predCur, colors = rasPal, opacity = 0.7, 
-                     group = 'c7', layerId = 'r1ID') %>%
-      comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
-                      rasCols, "Predicted Suitability", 
-                      addID = 'rProjArea', clearID = c('rProjArea', 'rProjTime', 'rProjMESS'))
-    
-    map %>% drawToolbarRefresh()
-    
-    shinyjs::enable("dlProj")
-  })
-  
-  # module Project to New Time
-  projTime <- callModule(projectTime_MOD, 'c8_projectTime', rvs)
-  
-  observeEvent(input$goProjectTime, {
-    projTime.call <- projTime()
-    req(projTime.call)
-    # stop if no model prediction
-    req(rvs$predCur)
-    # unpack
-    rvs$projMsk <- projTime.call[[1]]
-    rvs$projCur <- projTime.call[[2]]
-    req(rvs$projCur)
-    rvs$projCurVals <- getVals(rvs$projCur, rvs$comp7.type)
-    rvs$comp8.pj <- 'time'
-    raster::crs(rvs$projCur) <- raster::crs(rvs$bgMsk)
-    rasVals <- c(rvs$predCurVals, rvs$projCurVals)
-    rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
-    map %>% comp8_map(rvs$projCur, rvs$polyPjXY, bgShpXY, rasVals, 
-                      rasCols, "Predicted Suitability", 
-                      addID = 'rProjTime', clearID = c('r1ID', 'rProjArea', 'rProjTime', 'rProjMESS'))
-    
-    map %>% drawToolbarRefresh()
-    
-    shinyjs::enable("dlProj")
-  })
-  
-  # module Environmental Similarity
-  envSimilarity <- callModule(envSimilarity_MOD, 'c8_envSimilarity', rvs)
-  
-  observeEvent(input$goEnvSimilarity, {
-    rvs$mess <- envSimilarity()
-    req(rvs$mess)
-    # stop if no model projection
-    req(rvs$projCur)
-    rvs$comp8.esim <- 'mess'
-    # set infinite values to NA
-    rvs$mess[is.infinite(rvs$mess)] <- NA
-    # extract values
-    rvs$messVals <- getVals(rvs$mess)
-    rasVals <- rvs$messVals
-    # define colorRamp for mess
-    if (max(rasVals) > 0 & min(rasVals) < 0) {
-      rc1 <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')),
-                              space = "Lab")(abs(min(rasVals)))
-      rc2 <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'), 
-                              space = "Lab")(max(rasVals))
-      rasCols <- c(rc1, rc2)
-    } else if (max(rasVals) < 0 & min(rasVals) < 0) {
-      rasCols <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')), 
-                                  space = "Lab")(abs(min(rasVals)))
-    } else if (max(rasVals) > 0 & min(rasVals) > 0) {
-      rasCols <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'),
-                                  space = "Lab")(max(rasVals))
-    }
-    map %>% comp8_map(rvs$mess, rvs$polyPjXY, bgShpXY, rasVals, rasCols, "MESS Values",
-                      addID = 'rProjMESS', clearID = c('r1ID', 'rProjArea', 'rProjTime', 'rProjMESS'))
-    
-    shinyjs::enable("dlProj")
-  })
-  
-  # Reset Projection Extent button functionality
-  observeEvent(input$goResetProj, {
-    map %>%
-      removeShape("projExt") %>%
-      removeImage(c("rProjArea", "rProjTime", "rProjMESS"))
-    rvs %>% writeLog("Reset projection extent.")
-  })
-  
-  # download for model predictions (restricted to background extent)
-  output$dlProj <- downloadHandler(
-    filename = function() {
-      ext <- switch(input$projFileType, raster = 'zip', ascii = 'asc', GTiff = 'tif', PNG = 'png')
-      paste0(names(rvs$projCur), '.', ext)},
+
+  # # # # # # # # # # # # # # # # # #
+  # TRANSFER: other controls ####
+  # # # # # # # # # # # # # # # # # #
+
+  # convenience function for mapped model prediction raster for current species
+  mapXfer <- reactive(spp[[curSp()]]$transfer$mapXfer)
+
+  # DOWNLOAD: Shapefile of extent of transfer
+  output$dlXfShp <- downloadHandler(
+    filename = function() paste0(curSp(), '_xferShp.zip'),
     content = function(file) {
-      if (require(rgdal)) {
-        if (input$projFileType == 'png') {
-          png(file)
-          raster::image(rvs$projCur)
-          dev.off()
-        } else if (input$projFileType == 'raster') {
-          fileName <- names(rvs$projCur)
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      n <- curSp()
+      rgdal::writeOGR(obj = spp[[curSp()]]$transfer$xfExt,
+                      dsn = tmpdir,
+                      layer = paste0(n, '_xferShp'),
+                      driver = "ESRI Shapefile",
+                      overwrite_layer = TRUE)
+
+      exts <- c('dbf', 'shp', 'shx')
+      fs <- paste0(n, '_xferShp.', exts)
+      zip::zipr(zipfile = file, files = fs)
+      if (file.exists(paste0(file, ".zip"))) {file.rename(paste0(file, ".zip"), file)}
+    },
+    contentType = "application/zip"
+  )
+
+  # DOWNLOAD: Transferred envs
+  output$dlXferEnvs <- downloadHandler(
+    filename = function() paste0(spp[[curSp()]]$transfer$xfEnvsDl, '_xfEnvs.zip'),
+    content = function(file) {
+      withProgress(
+        message = paste0("Preparing ", paste0(spp[[curSp()]]$transfer$xfEnvsDl, '_xfEnvs.zip...')), {
           tmpdir <- tempdir()
-          raster::writeRaster(rvs$projCur, file.path(tmpdir, fileName), format = input$projFileType, overwrite = TRUE)
           owd <- setwd(tmpdir)
+          on.exit(setwd(owd))
+          type <- input$xferEnvsFileType
+          nm <- names(spp[[curSp()]]$transfer$xferTimeEnvs)
+
+          raster::writeRaster(spp[[curSp()]]$transfer$xferTimeEnvs, nm, bylayer = TRUE,
+                              format = type, overwrite = TRUE)
+          ext <- switch(type, raster = 'grd', ascii = 'asc', GTiff = 'tif')
+
+          fs <- paste0(nm, '.', ext)
+          if (ext == 'grd') {
+            fs <- c(fs, paste0(nm, '.gri'))
+          }
+          zip::zipr(zipfile = file, files = fs)
+          if (file.exists(paste0(file, ".zip"))) file.rename(paste0(file, ".zip"), file)
+        })
+    },
+    contentType = "application/zip"
+  )
+
+  # download for model predictions (restricted to background extent)
+  output$dlXfer <- downloadHandler(
+    filename = function() {
+      ext <- switch(input$xferFileType, raster = 'zip', ascii = 'asc',
+                    GTiff = 'tif', png = 'png')
+      thresholdRule <- rmm()$prediction$transfer$environment1$thresholdRule
+      predType <- rmm()$prediction$notes
+      if (thresholdRule == 'none') {
+        paste0(curSp(), "_xfer_", predType, '.', ext)
+      } else {
+        paste0(curSp(), "_xfer_", thresholdRule, '.', ext)
+      }
+    },
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      if(require(rgdal)) {
+        if (input$xferFileType == 'png') {
+          req(mapXfer())
+          if (!webshot::is_phantomjs_installed()) {
+            logger %>%
+              writeLog(type = "error", "To download PNG prediction, you're required to",
+                       " install PhantomJS in your machine. You can use webshot::install_phantomjs()",
+                       " in you are R console.")
+            return()
+          }
+          if (!requireNamespace("mapview")) {
+            logger %>%
+              writeLog(
+                type = "error",
+                "PNG option is available if you install the 'mapview' package ",
+                "(which is a suggested package for Wallace, not a required dependency). If you ",
+                "want to install it, close Wallace and run the following line in the ",
+                "R Console: ", em("install.packages('mapview')")
+              )
+            return()
+          }
+          if (rmm()$prediction$transfer$environment1$thresholdRule != 'none') {
+            mapXferVals <- 0:1
+            rasPal <- c('gray', 'red')
+            legendPal <- colorBin(rasPal, 0:1, bins = 2)
+            mapTitle <- "Thresholded Suitability<br>(Transferred)"
+            mapLabFormat <- function(type, cuts, p) {
+              n = length(cuts)
+              cuts[n] = "predicted presence"
+              for (i in 2:(n - 1)) {
+                cuts[i] = ""
+              }
+              cuts[1] = "predicted absence"
+              paste0(cuts[-n], cuts[-1])
+            }
+            mapOpacity <- 1
+          } else {
+            rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
+            mapXferVals <- spp[[curSp()]]$transfer$mapXferVals
+            rasPal <- colorNumeric(rasCols, mapXferVals, na.color='transparent')
+            legendPal <- colorNumeric(rev(rasCols), mapXferVals, na.color='transparent')
+            mapTitle <- "Predicted Suitability<br>(Transferred)"
+            mapLabFormat <- reverseLabel(2, reverse_order=TRUE)
+            mapOpacity <- NULL
+          }
+          polyXfXY <- spp[[curSp()]]$transfer$xfExt@polygons[[1]]@Polygons
+          if(length(polyXfXY) == 1) {
+            shp <- polyXfXY[[1]]@coords
+          } else {
+            shp <- lapply(polyXfXY, function(x) x@coords)
+          }
+          m <- leaflet() %>%
+            addLegend("bottomright", pal = legendPal, title = mapTitle,
+                      labFormat = mapLabFormat, opacity = mapOpacity,
+                      values = mapXferVals, layerId = "train") %>%
+            addProviderTiles(input$bmap) %>%
+            addRasterImage(mapXfer(), colors = rasPal, opacity = 0.7,
+                           group = 'vis', layerId = 'mapXfer', method = "ngb") %>%
+            addPolygons(lng = shp[, 1], lat = shp[, 2], fill = FALSE,
+                        weight = 4, color = "red", group = 'xfer')
+          mapview::mapshot(m, file = file)
+        } else if (input$xferFileType == 'raster') {
+          fileName <- curSp()
+          raster::writeRaster(mapXfer(), file.path(tmpdir, fileName),
+                              format = input$xferFileType, overwrite = TRUE)
           fs <- paste0(fileName, c('.grd', '.gri'))
-          zip::zip(zipfile=file, files=fs)
-          setwd(owd)
+          zip::zipr(zipfile = file, files = fs)
         } else {
-          r <- raster::writeRaster(rvs$projCur, file, format = input$projFileType, overwrite = TRUE)
+          r <- raster::writeRaster(mapXfer(), file, format = input$xferFileType,
+                                   overwrite = TRUE)
           file.rename(r@file@name, file)
         }
       } else {
-        rvs %>% writeLog("Please install the rgdal package before downloading rasters.")
+        logger %>% writeLog("Please install the rgdal package before downloading rasters.")
       }
     }
   )
-  
+
+  # download for mess (restricted to background extent)
+  output$dlMess <- downloadHandler(
+    filename = function() {
+      ext <- switch(input$messFileType, raster = 'zip', ascii = 'asc',
+                    GTiff = 'tif', png = 'png')
+      paste0(curSp(), "_mess.", ext)
+    },
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      if(require(rgdal)) {
+        req(spp[[curSp()]]$transfer$mess, spp[[curSp()]]$transfer$xfExt)
+        mess <- spp[[curSp()]]$transfer$mess
+        if (input$messFileType == 'png') {
+          if (!webshot::is_phantomjs_installed()) {
+            logger %>%
+              writeLog(type = "error", "To download PNG prediction, you're required to",
+                       " install PhantomJS in your machine. You can use webshot::install_phantomjs()",
+                       " in you are R console.")
+            return()
+          }
+          if (!requireNamespace("mapview")) {
+            logger %>%
+              writeLog(
+                type = "error",
+                "PNG option is available if you install the 'mapview' package ",
+                "(which is a suggested package for Wallace, not a required dependency). If you ",
+                "want to install it, close Wallace and run the following line in the ",
+                "R Console: ", em("install.packages('mapview')")
+              )
+            return()
+          }
+          rasVals <- spp[[curSp()]]$transfer$messVals
+          polyXfXY <- spp[[curSp()]]$transfer$xfExt@polygons[[1]]@Polygons
+          if(length(polyXfXY) == 1) {
+            shp <- polyXfXY[[1]]@coords
+          } else {
+            shp <- lapply(polyXfXY, function(x) x@coords)
+          }
+          # define colorRamp for mess
+          if (max(rasVals) > 0 & min(rasVals) < 0) {
+            rc1 <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')),
+                                    space = "Lab")(abs(min(rasVals)))
+            rc2 <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'),
+                                    space = "Lab")(max(rasVals))
+            rasCols <- c(rc1, rc2)
+          } else if (max(rasVals) < 0 & min(rasVals) < 0) {
+            rasCols <- colorRampPalette(colors = rev(RColorBrewer::brewer.pal(n = 3, name = 'Reds')),
+                                        space = "Lab")(abs(min(rasVals)))
+          } else if (max(rasVals) > 0 & min(rasVals) > 0) {
+            rasCols <- colorRampPalette(colors = RColorBrewer::brewer.pal(n = 3, name = 'Blues'),
+                                        space = "Lab")(max(rasVals))
+          }
+          legendPal <- colorNumeric(rev(rasCols), rasVals, na.color='transparent')
+          rasPal <- colorNumeric(rasCols, rasVals, na.color='transparent')
+          m <- leaflet() %>%
+            addLegend("bottomright", pal = legendPal, title = "MESS Values",
+                      labFormat = reverseLabels(2, reverse_order=TRUE),
+                      values = rasVals, layerId = "train") %>%
+            addProviderTiles(input$bmap) %>%
+            addRasterImage(mess, colors = rasPal, opacity = 0.7,
+                           group = 'vis', layerId = 'mapXfer', method = "ngb") %>%
+            addPolygons(lng = shp[, 1], lat = shp[, 2], fill = FALSE,
+                        weight = 4, color = "red", group = 'xfer')
+          mapview::mapshot(m, file = file)
+        } else if (input$messFileType == 'raster') {
+          fileName <- curSp()
+          raster::writeRaster(mess, file.path(tmpdir, fileName),
+                              format = input$messFileType, overwrite = TRUE)
+          fs <- paste0(fileName, c('.grd', '.gri'))
+          zip::zipr(zipfile = file, files = fs)
+        } else {
+          r <- raster::writeRaster(mess, file, format = input$messFileType,
+                                   overwrite = TRUE)
+          file.rename(r@file@name, file)
+        }
+      } else {
+        logger %>% writeLog("Please install the rgdal package before downloading rasters.")
+      }
+    }
+  )
+
   ########################################### #
-  ### MARKDOWN FUNCTIONALITY ####
+  ### RMARKDOWN FUNCTIONALITY ####
   ########################################### #
-  
+
+  filetype_to_ext <- function(type = c("Rmd", "PDF", "HTML", "Word")) {
+    type <- match.arg(type)
+    switch(
+      type,
+      Rmd = '.Rmd',
+      PDF = '.pdf',
+      HTML = '.html',
+      Word = '.docx'
+    )
+  }
+
   # handler for R Markdown download
   output$dlRMD <- downloadHandler(
     filename = function() {
-      paste0("wallace-session-", Sys.Date(), ".", switch(
-        input$rmdFileType, Rmd = 'Rmd', PDF = 'pdf', HTML = 'html', Word = 'docx'
-      ))},
+      paste0("wallace-session-", Sys.Date(), filetype_to_ext(input$rmdFileType))
+    },
     content = function(file) {
-      # convert removed occIDs to characters of vectors
-      if (!is.null(rvs$removedIDs)) {
-        rvs$occsRem <- printVecAsis(rvs$removedIDs)  
+      spp <- common$spp
+      md_files <- c()
+      md_intro_file <- tempfile(pattern = "intro_", fileext = ".md")
+      rmarkdown::render("Rmd/userReport_intro.Rmd",
+                        output_format = rmarkdown::github_document(html_preview = FALSE),
+                        output_file = md_intro_file,
+                        clean = TRUE,
+                        encoding = "UTF-8")
+      md_files <- c(md_files, md_intro_file)
+      # Abbreviation for one species
+      spAbr <- plyr::alply(abbreviate(stringr::str_replace(allSp(), "_", " "),
+                                      minlength = 2),
+                           .margins = 1, function(x) {x <- as.character(x)})
+      names(spAbr) <- allSp()
+
+      for (sp in allSp()) {
+        species_rmds <- NULL
+        for (component in names(COMPONENT_MODULES[names(COMPONENT_MODULES) != c("espace", "rep")])) {
+          for (module in COMPONENT_MODULES[[component]]) {
+            rmd_file <- module$rmd_file
+            rmd_function <- module$rmd_function
+            if (is.null(rmd_file)) next
+
+            if (is.null(rmd_function)) {
+              rmd_vars <- list()
+            } else {
+              rmd_vars <- do.call(rmd_function, list(species = spp[[sp]]))
+            }
+            knit_params <- c(
+              file = rmd_file,
+              spName = spName(sp),
+              sp = sp,
+              spAbr = spAbr[[sp]],
+              rmd_vars
+            )
+            module_rmd <- do.call(knitr::knit_expand, knit_params)
+
+            module_rmd_file <- tempfile(pattern = paste0(module$id, "_"),
+                                        fileext = ".Rmd")
+            writeLines(module_rmd, module_rmd_file)
+            species_rmds <- c(species_rmds, module_rmd_file)
+          }
+        }
+
+        species_md_file <- tempfile(pattern = paste0(sp, "_"),
+                                    fileext = ".md")
+        rmarkdown::render(input = "Rmd/userReport_species.Rmd",
+                          params = list(child_rmds = species_rmds,
+                                        spName = spName(sp),
+                                        spAbr = spAbr[[sp]]),
+                          output_format = rmarkdown::github_document(html_preview = FALSE),
+                          output_file = species_md_file,
+                          clean = TRUE,
+                          encoding = "UTF-8")
+        md_files <- c(md_files, species_md_file)
       }
-      # convert polygon coordinates to characters of vectors
-      if (!is.null(rvs$polySelXY)) {
-        polySelX <- printVecAsis(round(rvs$polySelXY[,1], digits=4))
-        polySelY <- printVecAsis(round(rvs$polySelXY[,2], digits=4))
-      } else {
-        polySelX <- polySelY <- NULL
+
+      if (!is.null(multSp())) {
+        for (sp in multSp()) {
+          namesMult <- unlist(strsplit(sp, "\\."))
+          multSpecies_rmds <- NULL
+          for (component in names(COMPONENT_MODULES[names(COMPONENT_MODULES) == "espace"])) {
+            for (module in COMPONENT_MODULES[[component]]) {
+              rmd_file <- module$rmd_file
+              rmd_function <- module$rmd_function
+              if (is.null(rmd_file)) next
+
+              if (is.null(rmd_function)) {
+                rmd_vars <- list()
+              } else {
+                rmd_vars <- do.call(rmd_function, list(species = spp[[sp]]))
+              }
+              knit_params <- c(
+                file = rmd_file,
+                spName1 = spName(namesMult[1]),
+                spName2 = spName(namesMult[2]),
+                sp1 = namesMult[1],
+                spAbr1 = spAbr[[namesMult[1]]],
+                sp2 = namesMult[2],
+                spAbr2 = spAbr[[namesMult[2]]],
+                multAbr = paste0(spAbr[[namesMult[1]]], "_", spAbr[[namesMult[2]]]),
+                rmd_vars
+              )
+              module_rmd <- do.call(knitr::knit_expand, knit_params)
+
+              module_rmd_file <- tempfile(pattern = paste0(module$id, "_"),
+                                          fileext = ".Rmd")
+              writeLines(module_rmd, module_rmd_file)
+              multSpecies_rmds <- c(multSpecies_rmds, module_rmd_file)
+            }
+          }
+
+          multSpecies_md_file <- tempfile(pattern = paste0(sp, "_"),
+                                          fileext = ".md")
+          rmarkdown::render(input = "Rmd/userReport_multSpecies.Rmd",
+                            params = list(child_rmds = multSpecies_rmds,
+                                          spName1 = spName(namesMult[1]),
+                                          spName2 = spName(namesMult[2]),
+                                          multAbr = paste0(spAbr[[namesMult[1]]], "_",
+                                                           spAbr[[namesMult[2]]])
+                            ),
+                            output_format = rmarkdown::github_document(html_preview = FALSE),
+                            output_file = multSpecies_md_file,
+                            clean = TRUE,
+                            encoding = "UTF-8")
+          md_files <- c(md_files, multSpecies_md_file)
+        }
       }
-      if (!is.null(rvs$polyPjXY)) {
-        polyPjX <- printVecAsis(round(rvs$polyPjXY[,1], digits=4))
-        polyPjY <- printVecAsis(round(rvs$polyPjXY[,2], digits=4))
+
+      combined_md <-
+        md_files %>%
+        lapply(readLines) %>%
+        # lapply(readLines, encoding = "UTF-8") %>%
+        lapply(paste, collapse = "\n") %>%
+        paste(collapse = "\n\n")
+
+      result_file <- tempfile(pattern = "result_", fileext = filetype_to_ext(input$rmdFileType))
+      if (input$rmdFileType == "Rmd") {
+        combined_rmd <- gsub('``` r', '```{r}', combined_md)
+        writeLines(combined_rmd, result_file, useBytes = TRUE)
       } else {
-        polyPjX <- polyPjY <- NULL
-      }
-      bcSels <- printVecAsis(rvs$bcSels)
-      exp <- knitr::knit_expand("Rmd/userReport.Rmd", 
-                                curWD = curWD, 
-                                # comp 1
-                                spName = spName(), 
-                                dbName = rvs$occDb, 
-                                occNum = rvs$occNum, 
-                                occsCSV = rvs$userCSV$name,
-                                # comp 2
-                                thinDist = rvs$thinDist, 
-                                occsRemoved = rvs$occsRem,
-                                occsSelX = polySelX,
-                                occsSelY = polySelY,  
-                                # comp 3
-                                bcRes = rvs$bcRes, 
-                                bcLat = rvs$bcLat, 
-                                bcLon = rvs$bcLon,
-                                userEnvs = printVecAsis(rvs$userEnvs$name), 
-                                bcSels = bcSels, 
-                                # comp 4
-                                bgSel = rvs$comp4.shp, 
-                                bgBuf = rvs$comp4.buf, 
-                                #bgUserCSVname = rvs$bgUserCSVname,
-                                #bgUserCSVpath = rvs$bgUserCSVpath,
-                                bgUserShpPath = rvs$bgUserShpPar$dsn, 
-                                bgUserShpName = rvs$bgUserShpPar$layer, 
-                                bgPtsNum = rvs$bgPtsNum,
-                                # comp 5
-                                partSel = rvs$partSel, 
-                                kfolds = rvs$kfolds, 
-                                aggFact = rvs$aggFact,
-                                # comp 6
-                                enmSel = rvs$comp6,
-                                algMaxent = rvs$algMaxent,
-                                clamp = rvs$clamp,
-                                rms1 = rvs$rms[1],
-                                rms2 = rvs$rms[2],
-                                rmsStep = rvs$rmsStep,
-                                fcs = printVecAsis(rvs$fcs),
-                                # comp 7
-                                modSel = rvs$modSel, 
-                                mxNonZeroCoefs = printVecAsis(rvs$mxNonZeroCoefs),
-                                envSel = rvs$envSel,
-                                bcPlot1 = rvs$bcPlotsPar$bc1, 
-                                bcPlot2 = rvs$bcPlotsPar$bc2,
-                                bcPlotP = rvs$bcPlotsPar$p,
-                                mxEvalSel = rvs$mxEvalSel,
-                                predType = rvs$comp7.type,
-                                comp7.thresh = rvs$comp7.thr,
-                                # comp 8 
-                                occsPjX = polyPjX,
-                                occsPjY = polyPjY,
-                                pjRCP = rvs$pjTimePar$rcp,
-                                pjGCM = rvs$pjTimePar$gcm,
-                                pjYear = rvs$pjTimePar$year,
-                                comp8.thresh = rvs$comp8.thr)
-      # temporarily switch to the temp dir, in case you do not have write
-      # permission to the current working directory
-      owd <- setwd(tempdir())
-      on.exit(setwd(owd))
-      writeLines(exp, 'userReport2.Rmd')
-      
-      if (input$rmdFileType == 'Rmd') {
-        out <- rmarkdown::render('userReport2.Rmd', rmarkdown::md_document(variant="markdown_github"))
-        writeLines(gsub('``` r', '```{r}', readLines(out)), 'userReport3.Rmd')
-        out <- 'userReport3.Rmd'
-      } else {
-        out <- rmarkdown::render('userReport2.Rmd', 
-                                 switch(input$rmdFileType,
-                                        PDF = rmarkdown::pdf_document(latex_engine='xelatex'), 
-                                        HTML = rmarkdown::html_document(), 
-                                        Word = rmarkdown::word_document())
+        combined_md_file <- tempfile(pattern = "combined_", fileext = ".md")
+        writeLines(combined_md, combined_md_file)
+        rmarkdown::render(
+          input = combined_md_file,
+          output_format =
+            switch(
+              input$rmdFileType,
+              "PDF" = rmarkdown::pdf_document(),
+              "HTML" = rmarkdown::html_document(),
+              "Word" = rmarkdown::word_document()
+            ),
+          output_file = result_file,
+          clean = TRUE,
+          encoding = "UTF-8"
         )
       }
-      file.rename(out, file)
+
+      file.rename(result_file, file)
     }
   )
-})
 
+  ################################
+  ### METADATA FUNCTIONALITY ####
+  ################################
+
+  output$dlRMM <- downloadHandler(
+    filename = function() {paste0("wallace-metadata-", Sys.Date(), ".zip")},
+    content = function(file) {
+      tmpdir <- tempdir()
+      owd <- setwd(tmpdir)
+      on.exit(setwd(owd))
+      # REFERENCES ####
+      knitcitations::citep(citation("rangeModelMetadata"))
+      namesSpp <- allSp()
+      for (i in namesSpp) {
+        rangeModelMetadata::rmmToCSV(spp[[i]]$rmm, filename = paste0(i, "_RMM.csv"))
+      }
+      zip::zipr(zipfile = file, files = paste0(namesSpp, "_RMM.csv"))
+    })
+
+  ################################
+  ### REFERENCE FUNCTIONALITY ####
+  ################################
+
+  output$dlrefPackages <- downloadHandler(
+    filename = function() {paste0("ref-packages-", Sys.Date(),
+                                  filetype_to_ext(input$refFileType))},
+    content = function(file) {
+      # Create BIB file
+      bib_file <- "Rmd/references.bib"
+      temp_bib_file <- tempfile(pattern = "ref_", fileext = ".bib")
+      # Package always cited
+      knitcitations::citep(citation("wallace"))
+      knitcitations::citep(citation("knitcitations"))
+      knitcitations::citep(citation("knitr"))
+      knitcitations::citep(citation("rmarkdown"))
+      knitcitations::citep(citation("raster"))
+      # Write BIBTEX file
+      knitcitations::write.bibtex(file = temp_bib_file)
+      # Replace NOTE fields with VERSION when R package
+      bib_ref <- readLines(temp_bib_file)
+      bib_ref  <- gsub(pattern = "note = \\{R package version", replace = "version = \\{R package", x = bib_ref)
+      writeLines(bib_ref, con = temp_bib_file)
+      file.rename(temp_bib_file, bib_file)
+      # Render reference file
+      md_ref_file <- tempfile(pattern = "ref_", fileext = ".md")
+      rmarkdown::render("Rmd/references.Rmd",
+                        output_format =
+                          switch(
+                            input$refFileType,
+                            "PDF" = rmarkdown::pdf_document(),
+                            "HTML" = rmarkdown::html_document(),
+                            "Word" = rmarkdown::word_document()
+                          ),
+                        output_file = file,
+                        clean = TRUE,
+                        encoding = "UTF-8")
+    })
+
+  ################################
+  ### COMMON LIST FUNTIONALITY ####
+  ################################
+
+  # Create a data structure that holds variables and functions used by modules
+  common = list(
+    # Reactive variables to pass on to modules
+    logger = logger,
+    spp = spp,
+    curSp = curSp,
+    allSp = allSp,
+    multSp = multSp,
+    curEnv = curEnv,
+    curModel = curModel,
+    component = component,
+    module = module,
+    envs.global = envs.global,
+    mapCntr = mapCntr,
+
+    # Shortcuts to values nested inside spp
+    occs = occs,
+    envs = envs,
+    bcSel = bcSel,
+    ecoClimSel = ecoClimSel,
+    bg = bg,
+    bgExt = bgExt,
+    bgMask = bgMask,
+    bgShpXY = bgShpXY,
+    selCatEnvs = selCatEnvs,
+    evalOut = evalOut,
+    mapPred = mapPred,
+    mapXfer = mapXfer,
+    rmm = rmm,
+
+    # Switch to a new component tab
+    update_component = function(tab = c("Map", "Table", "Results", "Download")) {
+      tab <- match.arg(tab)
+      updateTabsetPanel(session, "main", selected = tab)
+    },
+
+    # Disable a specific module so that it will not be selectable in the UI
+    disable_module = function(component = COMPONENTS, module) {
+      component <- match.arg(component)
+      shinyjs::js$disableModule(component = component, module = module)
+    },
+
+    # Enable a specific module so that it will be selectable in the UI
+    enable_module = function(component = COMPONENTS, module) {
+      component <- match.arg(component)
+      shinyjs::js$enableModule(component = component, module = module)
+    }
+  )
+
+  # Initialize all modules
+  modules <- list()
+  lapply(names(COMPONENT_MODULES), function(component) {
+    lapply(COMPONENT_MODULES[[component]], function(module) {
+      return <- callModule(get(module$server_function), module$id, common = common)
+      if (is.list(return) &&
+          "save" %in% names(return) && is.function(return$save) &&
+          "load" %in% names(return) && is.function(return$load)) {
+        modules[[module$id]] <<- return
+      }
+    })
+  })
+
+  observe({
+    spp_size <- as.numeric(utils::object.size(reactiveValuesToList(spp)))
+    shinyjs::toggle("save_warning", condition = (spp_size >= SAVE_SESSION_SIZE_MB_WARNING * MB))
+  })
+
+  # Save the current session to a file
+  save_session <- function(file) {
+    state <- list()
+
+    spp_save <- reactiveValuesToList(spp)
+
+    # Save general data
+    state$main <- list(
+      version = as.character(packageVersion("wallace")),
+      spp = spp_save,
+      envs_global = reactiveValuesToList(envs.global),
+      cur_sp = input$curSp,
+      selected_module = sapply(COMPONENTS, function(x) input[[glue("{x}Sel")]], simplify = FALSE)
+    )
+
+    # Ask each module to save whatever data it wants
+    for (module_id in names(modules)) {
+      state[[module_id]] <- modules[[module_id]]$save()
+    }
+
+    saveRDS(state, file)
+  }
+
+  output$save_session <- downloadHandler(
+    filename = function() {
+      paste0("wallace-session-", Sys.Date(), ".rds")
+    },
+    content = function(file) {
+      save_session(file)
+    }
+  )
+
+  # Load a wallace session from a file
+  load_session <- function(file) {
+    if (tools::file_ext(file) != "rds") {
+      shinyalert::shinyalert("Invalid Wallace session file", type = "error")
+      return()
+    }
+
+    state <- readRDS(file)
+
+    if (!is.list(state) || is.null(state$main) || is.null(state$main$version)) {
+      shinyalert::shinyalert("Invalid Wallace session file", type = "error")
+      return()
+    }
+
+    # Load general data
+    new_version <- as.character(packageVersion("wallace"))
+    if (state$main$version != new_version) {
+      shinyalert::shinyalert(
+        glue("The input file was saved using Wallace v{state$main$version}, but you are using Wallace v{new_version}"),
+        type = "warning"
+      )
+    }
+
+    for (spname in names(state$main$spp)) {
+      spp[[spname]] <- state$main$spp[[spname]]
+    }
+    for (envname in names(state$main$envs_global)) {
+      envs.global[[envname]] <- state$main$envs_global[[envname]]
+    }
+    for (component in names(state$main$selected_module)) {
+      value <- state$main$selected_module[[component]]
+      updateRadioButtons(session, glue("{component}Sel"), selected = value)
+    }
+    updateSelectInput(session, "curSp", selected = state$main$cur_sp)
+
+    state$main <- NULL
+
+    # Ask each module to load its own data
+    for (module_id in names(state)) {
+      modules[[module_id]]$load(state[[module_id]])
+    }
+  }
+
+  observeEvent(input$goLoad_session, {
+    load_session(input$load_session$datapath)
+    # Select names of species in spp object
+    sppLoad <- grep("\\.", names(spp), value = TRUE, invert = TRUE)
+    # Storage species with no env data
+    noEnvsSpp <- NULL
+    for (i in sppLoad) {
+      # Check if envs.global object exists in spp
+      if (!is.null(spp[[i]]$envs)) {
+        diskRast <- raster::fromDisk(envs.global[[spp[[i]]$envs]])
+        if (diskRast) {
+          if (class(envs.global[[spp[[i]]$envs]]) == "RasterStack") {
+            diskExist <- !file.exists(envs.global[[spp[[i]]$envs]]@layers[[1]]@file@name)
+          } else if (class(envs.global[[spp[[i]]$envs]]) == "RasterBrick") {
+            diskExist <- !file.exists(envs.global[[spp[[i]]$envs]]@file@name)
+          }
+          if (diskExist) {
+            noEnvsSpp <- c(noEnvsSpp, i)
+          }
+        }
+      }
+    }
+    if (is.null(noEnvsSpp)) {
+      shinyalert::shinyalert(title = "Session loaded", type = "success")
+    } else {
+      msgEnvAgain <- paste0("Load variables again for: ",
+                            paste0(noEnvsSpp, collapse = ", "))
+      shinyalert::shinyalert(title = "Session loaded", type = "warning",
+                             text = msgEnvAgain)
+    }
+  })
+}

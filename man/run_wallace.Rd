@@ -7,26 +7,28 @@
 run_wallace(launch.browser = TRUE, port = getOption("shiny.port"))
 }
 \arguments{
-\item{launch.browser}{Run Wallace in browser}
+\item{launch.browser}{Whether or not to launch a new browser window.}
 
-\item{port}{If launch.browser is FALSE, specify port to run Wallace}
+\item{port}{The port for the shiny server to listen on. Defaults to a
+random available port.}
 }
 \description{
-This function runs the \emph{Wallace} application in the user's 
+This function runs the \emph{Wallace} application in the user's
 default web browser.
 }
 \note{
 Please see the official website (\url{https://wallaceecomod.github.io/})
- for more details. If you have questions about the application, please 
- participate in the \href{https://groups.google.com/forum/#!forum/wallaceecomod}{Google Group}, 
- or email the team directly: \email{wallaceecomod@gmail.com}.
+for more details. If you have questions about the application,
+please participate in the \href{https://groups.google.com/forum/#!forum/wallaceecomod}{Google Group},
+or email the team directly: \email{wallaceEcoMod@gmail.com}.
 }
 \examples{
-if(interactive()){
+if(interactive()) {
 run_wallace()
 }
-
 }
 \author{
-Jamie M. Kass
+Jamie Kass <jkass@gradcenter.cuny.edu>
+
+Gonzalo E. Pinilla-Buitrago <gpinillabuitrago@gradcenter.cuny.edu>
 }
