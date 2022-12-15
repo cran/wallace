@@ -1,8 +1,8 @@
-4035ccabfebc616d315faec97a074513 *DESCRIPTION
+e9d99e43edbb2b2307c04395aea32f05 *DESCRIPTION
 f97a1b4e76d72e5f1e6c9d2592b13d72 *NAMESPACE
-4630351eed3049b8e152180aaba065c3 *NEWS.md
+bca5fbe2b0137323376513f78e2f5a22 *NEWS.md
 9ccb439b46a161578a80bf0b18b44a07 *R/custom_modules.R
-18bf94e45bc905ea043810a1e631fda3 *R/envs_ecoClimate.R
+72b5e1355d9354b552f0436c1d232692 *R/envs_ecoClimate.R
 5e03a406902c7242c26b6c0ea013246b *R/envs_userEnvs.R
 46ebd0ddeee7808b579c7b3d056f93c6 *R/envs_worldclim.R
 b16c93bf14c2454faffef01476f3adf5 *R/espace_nicheOv.R
@@ -12,7 +12,7 @@ baf26a8887b1ac68b55629919de21de7 *R/helper_functions.R
 bb22d2beeef2f8c3ea00a0df34e782f9 *R/model_bioclim.R
 d3f2bd10c526cbf71187c44cc78e83e3 *R/model_maxent.R
 4f0a6ebe34f69eae86f4d9378739d246 *R/occs_paleoDb.R
-b84c8a1a7982e6ff6ee338ff1a7a3c77 *R/occs_queryDb.R
+99c067e260733090db67713d6df730e8 *R/occs_queryDb.R
 d73524a25b1847f72490ae10118e631e *R/occs_userOccs.R
 1aab26f59fce434de3016db8aa77a3ec *R/part_partitionOccs.R
 76fafded01fb0ae8023fad6f0b2a5440 *R/penvs_bgExtent.R
@@ -32,7 +32,7 @@ b8eaf4f7167c89e413e4a0445eab2c4a *R/xfer_draw.R
 f1999993dd90462ba1b06d38e3550e50 *R/xfer_time.R
 da79762036751f834ef3c0425e83c2d9 *R/xfer_userEnvs.R
 afb3e9fd3f028d3825c9593ee253a29c *R/xfer_userExtent.R
-1cc9346b7bff098e06aa88c946c1a169 *README.md
+837591da91b27a17147a146fad590f4f *README.md
 97e6bbd1b1f8b51c2c56f6d67965a58c *inst/CITATION
 5a5079d90915dc2bc154dd21a6808fc4 *inst/extdata/Bassaricyon_alleni.csv
 79411a58bb3949a48d607966ba816698 *inst/extdata/Bassaricyon_alleni_bgPoints.csv
@@ -67,12 +67,12 @@ a04a9ebf37d87dbd571a188c52474902 *inst/shiny/Rmd/gtext_penvs.Rmd
 8637155f5835d152a97c1eb7ba958dc9 *inst/shiny/Rmd/gtext_vis.Rmd
 088a1a6768df4ad6a018fb8112267f72 *inst/shiny/Rmd/gtext_xfer.Rmd
 4f80e0e6e86d6079c6f01fe9ebcdefb4 *inst/shiny/Rmd/references.Rmd
-84539ef5520dcc3ac65d9b7c86488b4d *inst/shiny/Rmd/text_about.Rmd
+730d6d193dcc275ae30fb0426ca9ab65 *inst/shiny/Rmd/text_about.Rmd
 4390946a92299785dd49cf75169f44d5 *inst/shiny/Rmd/text_how_to_use.Rmd
-07b50aee0a7cf7d4398c5897a6c4ff31 *inst/shiny/Rmd/text_intro_tab.Rmd
+58c9c05e4462f7250810cd67a174782c *inst/shiny/Rmd/text_intro_tab.Rmd
 00752205db53959af6ec6ed9bb862a90 *inst/shiny/Rmd/text_loadsesh.Rmd
 4733a2ca41be7148204f13ad97841c38 *inst/shiny/Rmd/text_team.Rmd
-016ac8be09815599313dd338f07e7c93 *inst/shiny/Rmd/userReport_intro.Rmd
+4933c5939abd229f13c1eb7bc2f9c99e *inst/shiny/Rmd/userReport_intro.Rmd
 7fe1aa78fae92a05cebcc8c671bfe54c *inst/shiny/Rmd/userReport_multSpecies.Rmd
 c4c7b3f99bae2cd16aea8ad337a2a1f3 *inst/shiny/Rmd/userReport_species.Rmd
 3c4faf35f4da7ef3b91086c4259b2981 *inst/shiny/global.R
@@ -113,9 +113,9 @@ f8a2800552d8a9fd1aa180abcb64383c *inst/shiny/modules/occs_paleoDb.R
 d4819a680be165ce9cdfdab5e0d0a867 *inst/shiny/modules/occs_paleoDb.Rmd
 f2362a8310f164d4009a7b434ebc7d02 *inst/shiny/modules/occs_paleoDb.md
 1cf4f6abc5c45f1469e529b2019e823b *inst/shiny/modules/occs_paleoDb.yml
-14127431b96544acbf58252ecca96ae2 *inst/shiny/modules/occs_queryDb.R
+d622dc853b2c24ca005084f9e40402c2 *inst/shiny/modules/occs_queryDb.R
 d2eac4bd88b7af0e2bfe3894ca4cad18 *inst/shiny/modules/occs_queryDb.Rmd
-f3722568b112dad1a049bb15db56a1d0 *inst/shiny/modules/occs_queryDb.md
+27f41b6d05b81993007556d03e442168 *inst/shiny/modules/occs_queryDb.md
 42b3b030673b87d67f84c208216d2c69 *inst/shiny/modules/occs_queryDb.yml
 0d35d5b7f0e55ffcdb00b342a79e7cff *inst/shiny/modules/occs_userOccs.R
 d5f787cf0854c931073a7433781a33f9 *inst/shiny/modules/occs_userOccs.Rmd
@@ -163,7 +163,7 @@ c793ed2bfe46beccca4aa5b571d94333 *inst/shiny/modules/rep_refPackages.Rmd
 321a3a47f721271eec5b210f2cad61c4 *inst/shiny/modules/rep_refPackages.yml
 5d7acd3d2d44eab78b93ca733dfd6629 *inst/shiny/modules/rep_rmms.R
 471c8041896b5967aca4af247a53b46c *inst/shiny/modules/rep_rmms.Rmd
-d5e5f206781415c6ec00fc93351b95d0 *inst/shiny/modules/rep_rmms.md
+79b5b2bc97b9a56c59951416ca7f5d41 *inst/shiny/modules/rep_rmms.md
 91c2682bfb5677fc0c645bc9579797f3 *inst/shiny/modules/rep_rmms.yml
 06b3fb56776c066453567842a3e46089 *inst/shiny/modules/vis_bioclimPlot.R
 a00e950495c1c74cbc1aaec8013a73bf *inst/shiny/modules/vis_bioclimPlot.Rmd
@@ -245,7 +245,7 @@ b20cc61017092c1dc59bce257dd16a35 *man/model_bioclim.Rd
 d9ed258a5e20cbe723dc728467ec8ad5 *man/model_maxent.Rd
 44b7f4b4f26b5d0376ca4de4107eb315 *man/mxNonzeroCoefs.Rd
 275a985d479ff668b18e6042f65da8bf *man/occs_paleoDb.Rd
-ff673907ab80b4c484d79d3702f17d43 *man/occs_queryDb.Rd
+e88c8b88db7c4c55167df2f5d8c83d5b *man/occs_queryDb.Rd
 65fb72ff770e5653c9fb2fb8c18c7c00 *man/occs_userOccs.Rd
 671fb3a67c2ae5ef92a044ed212b33ab *man/part_partitionOccs.Rd
 f899c2da1c9deb9fe5f3071692631d2e *man/penvs_bgExtent.Rd
@@ -295,7 +295,7 @@ a6b8dbc3f7f57b28dc34d9cf67407fe7 *tests/testthat/test_envs_worldclim.R
 e00031ff81732dd52c780034f0107004 *tests/testthat/test_model_bioclim.R
 2684d2a6a080378cdb7aa6685c4ba242 *tests/testthat/test_model_maxent.R
 3a13036ca13b632e2380117989a67e9b *tests/testthat/test_occs_paleoDb.R
-47f591c15d9c392e8ae2479eeb39165a *tests/testthat/test_occs_queryDb.R
+06db59c3b16d8dc4a3d0daf144b9f3bc *tests/testthat/test_occs_queryDb.R
 5edae2f63388d3103e3719f8ff04142d *tests/testthat/test_occs_userOccs.R
 ebfe4c0efd387fdd6d5671785ed7fb3e *tests/testthat/test_part_partitionOccs.R
 d31b95469eb2e246f0ba54d1368ce713 *tests/testthat/test_penvs_bgExtent.R
