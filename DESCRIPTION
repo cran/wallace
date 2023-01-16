@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.0.2
-Date: 2022-12-28
+Version: 2.0.3
+Date: 2023-01-16
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -42,9 +42,9 @@ Suggests: ade4, BIEN, dismo, jsonlite, knitr, mapview, maxnet, occCite,
 License: GPL-3
 URL: http://wallaceecomod.github.io/wallace/,
 Encoding: UTF-8
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2022-12-28 11:07:00 UTC; Gonzalo
+Packaged: 2023-01-16 21:55:37 UTC; Gonzalo
 Author: Jamie M. Kass [aut],
   Gonzalo E. Pinilla-Buitrago [aut, cre],
   Andrea Paz [aut],
@@ -65,4 +65,4 @@ Author: Jamie M. Kass [aut],
   Robert Muscarella [ctb]
 Maintainer: Gonzalo E. Pinilla-Buitrago <gpinillabuitrago@gradcenter.cuny.edu>
 Repository: CRAN
-Date/Publication: 2023-01-05 17:30:02 UTC
+Date/Publication: 2023-01-16 22:30:02 UTC
