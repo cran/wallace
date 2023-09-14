@@ -37,7 +37,7 @@
 #'   provided shape (+ a buffer is userBgBuf >0). The polygon will be at least
 #'   large enough to contain all occurrences.
 #' @author Jamie Kass <jamie.m.kass@@gmail.com>
-#' @author Gonzalo E. Pinilla-Buitrago <gpinillabuitrago@@gradcenter.cuny.edu>
+#' @author Gonzalo E. Pinilla-Buitrago <gepinillab@@gmail.com>
 #' @author Andrea Paz <paz.andreita@@gmail.com>
 # @note
 
@@ -68,7 +68,8 @@ penvs_userBgExtent <- function(bgShp_path, bgShp_name, userBgBuf, occs,
         file.rename(bgShp_path, file.path(pathdir, bgShp_name))
       }
       # read in shapefile and extract coords
-      bgExt <- rgdal::readOGR(file.path(pathdir, bgShp_name)[i])
+      bgExt <- sf::st_read(file.path(pathdir, bgShp_name)[i])
+      bgExt <- sf::as_Spatial(bgExt)
     } else {
       logger %>%
         writeLog(type = 'error',

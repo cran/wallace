@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.0.5
-Date: 2023-04-14
+Version: 2.0.6
+Date: 2023-09-05
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -13,7 +13,7 @@ Description: The 'shiny' application Wallace is a modular platform for
     website: <https://wallaceecomod.github.io/wallace/articles/tutorial-v2.html>.
 Authors@R: 
     c(person("Jamie M.", "Kass", email = "jamie.kass@oist.jp", role = "aut"),
-    person("Gonzalo E.", "Pinilla-Buitrago", email = "gpinillabuitrago@gradcenter.cuny.edu", role = c("aut", "cre")),
+    person("Gonzalo E.", "Pinilla-Buitrago", email = "gepinillab@gmail.com", role = c("aut", "cre")),
 	 	person("Andrea", "Paz", email = "paz.andreita@gmail.com", role = "aut"),
 	 	person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
 	 	person("Valentina", "Grisales-Betancur", email = "vgrisale@eafit.edu.co", role = "aut"),
@@ -32,19 +32,19 @@ Authors@R:
 	  person("Robert", "Muscarella", email = "bob.muscarella@gmail.com", role = "ctb"))
 Depends: R (>= 3.5.0), shiny (>= 1.6.0), leaflet (>= 2.0.2)
 Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat, ENMeval (>= 2.0.3),
-        glue, knitcitations, leafem, leaflet.extras (>= 1.0.0),
-        magrittr, methods, RColorBrewer, rgdal, rgeos, rlang,
-        rmarkdown, shinyalert, shinyjs, shinyWidgets (>= 0.6.0), spocc
-        (>= 1.2.0), spThin, tools, zip
-Suggests: ade4, BIEN, dismo, jsonlite, knitr, mapview, maxnet, occCite,
-        paleobioDB, rangeModelMetadata, raster, rgbif (>= 3.3.0),
-        rJava, sp, terra, testthat
+        knitcitations, leafem, leaflet.extras (>= 1.0.0), magrittr,
+        methods, RColorBrewer, rgeos, rJava, rlang, rmarkdown, sf,
+        shinyalert, shinyjs, shinyWidgets (>= 0.6.0), spocc (>= 1.2.0),
+        spThin, zip
+Suggests: ade4, BIEN, dismo, glue, jsonlite, knitr, mapview, maxnet,
+        occCite, rangeModelMetadata, raster, rgbif (>= 3.3.0), sp,
+        terra, testthat, tools
 License: GPL-3
 URL: http://wallaceecomod.github.io/wallace/,
 Encoding: UTF-8
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2023-04-15 01:40:00 UTC; Gonzalo
+Packaged: 2023-09-05 19:54:52 UTC; Gonzalo
 Author: Jamie M. Kass [aut],
   Gonzalo E. Pinilla-Buitrago [aut, cre],
   Andrea Paz [aut],
@@ -63,6 +63,6 @@ Author: Jamie M. Kass [aut],
   Sara Varela [ctb],
   Bruno Vilela [ctb],
   Robert Muscarella [ctb]
-Maintainer: Gonzalo E. Pinilla-Buitrago <gpinillabuitrago@gradcenter.cuny.edu>
+Maintainer: Gonzalo E. Pinilla-Buitrago <gepinillab@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-04-15 05:50:02 UTC
+Date/Publication: 2023-09-14 22:20:02 UTC
