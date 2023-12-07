@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.1.0
-Date: 2023-09-25
+Version: 2.1.1
+Date: 2023-12-05
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -13,14 +13,14 @@ Description: The 'shiny' application Wallace is a modular platform for
     website: <https://wallaceecomod.github.io/wallace/articles/tutorial-v2.html>.
 Authors@R: 
     c(person("Jamie M.", "Kass", email = "jamie.kass@oist.jp", role = "aut"),
-    person("Gonzalo E.", "Pinilla-Buitrago", email = "gepinillab@gmail.com", role = c("aut", "cre")),
+    person("Gonzalo E.", "Pinilla-Buitrago", email = "gepinillab@gmail.com", role = "aut"),
 	 	person("Andrea", "Paz", email = "paz.andreita@gmail.com", role = "aut"),
 	 	person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
 	 	person("Valentina", "Grisales-Betancur", email = "vgrisale@eafit.edu.co", role = "aut"),
 	  person("Dean", "Attali", email = "daattali@gmail.com", role = "aut"),
 	  person("Matthew E.", "Aiello-Lammens", email = "matt.lammens@gmail.com", role = "aut"),
 	  person("Cory", "Merow", email = "corymerow@gmail.com", role = "aut"),
-	  person("Mary E.", "Blair", email = "mblair1@amnh.org", role = "aut"),
+	  person("Mary E.", "Blair", email = "mblair1@amnh.org", role = c("aut", "cre")),
 	  person("Robert P.", "Anderson", email = "randerson@ccny.cuny.edu", role = "aut"),
 	  person("Sarah I.", "Meenan", email = "sarah.meenan@gmail.com", role = "ctb"),
 	  person("Olivier", "Broennimann", email = "olivier.broennimann@unil.ch", role = "ctb"),
@@ -31,10 +31,11 @@ Authors@R:
 	  person("Bruno", "Vilela", email = "bvilela@wustl.edu", role = "ctb"),
 	  person("Robert", "Muscarella", email = "bob.muscarella@gmail.com", role = "ctb"))
 Depends: R (>= 3.5.0), shiny (>= 1.6.0), leaflet (>= 2.0.2)
-Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat, ENMeval (>= 2.0.3),
-        knitcitations, leafem, leaflet.extras (>= 1.0.0), magrittr,
-        methods, RColorBrewer, rJava, rlang, rmarkdown, sf, shinyalert,
-        shinyjs, shinyWidgets (>= 0.6.0), spocc (>= 1.2.0), spThin, zip
+Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat (>= 4.0.0), ENMeval (>=
+        2.0.3), knitcitations, leafem, leaflet.extras (>= 1.0.0),
+        magrittr, methods, RColorBrewer, rJava, rlang, rmarkdown, sf,
+        shinyalert, shinyjs, shinyWidgets (>= 0.6.0), spocc (>= 1.2.0),
+        spThin, zip
 Suggests: ade4, BIEN, dismo, glue, jsonlite, knitr, mapview, maxnet,
         occCite, rangeModelMetadata, raster, rgbif (>= 3.3.0), sp,
         terra, testthat, tools
@@ -43,16 +44,16 @@ URL: http://wallaceecomod.github.io/wallace/,
 Encoding: UTF-8
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2023-09-25 23:17:41 UTC; Gonzalo
+Packaged: 2023-12-07 16:06:02 UTC; dlopezlozano
 Author: Jamie M. Kass [aut],
-  Gonzalo E. Pinilla-Buitrago [aut, cre],
+  Gonzalo E. Pinilla-Buitrago [aut],
   Andrea Paz [aut],
   Bethany A. Johnson [aut],
   Valentina Grisales-Betancur [aut],
   Dean Attali [aut],
   Matthew E. Aiello-Lammens [aut],
   Cory Merow [aut],
-  Mary E. Blair [aut],
+  Mary E. Blair [aut, cre],
   Robert P. Anderson [aut],
   Sarah I. Meenan [ctb],
   Olivier Broennimann [ctb],
@@ -62,6 +63,6 @@ Author: Jamie M. Kass [aut],
   Sara Varela [ctb],
   Bruno Vilela [ctb],
   Robert Muscarella [ctb]
-Maintainer: Gonzalo E. Pinilla-Buitrago <gepinillab@gmail.com>
+Maintainer: Mary E. Blair <mblair1@amnh.org>
 Repository: CRAN
-Date/Publication: 2023-09-26 00:10:02 UTC
+Date/Publication: 2023-12-07 17:30:02 UTC
