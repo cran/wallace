@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.1.1
-Date: 2023-12-05
+Version: 2.1.2
+Date: 2024-03-08
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -33,9 +33,9 @@ Authors@R:
 Depends: R (>= 3.5.0), shiny (>= 1.6.0), leaflet (>= 2.0.2)
 Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat (>= 4.0.0), ENMeval (>=
         2.0.3), knitcitations, leafem, leaflet.extras (>= 1.0.0),
-        magrittr, methods, RColorBrewer, rJava, rlang, rmarkdown, sf,
-        shinyalert, shinyjs, shinyWidgets (>= 0.6.0), spocc (>= 1.2.0),
-        spThin, zip
+        magrittr, markdown, methods, RColorBrewer, rJava, rlang,
+        rmarkdown, sf, shinyalert, shinyjs, shinyWidgets (>= 0.6.0),
+        spocc (>= 1.2.0), spThin, zip
 Suggests: ade4, BIEN, dismo, glue, jsonlite, knitr, mapview, maxnet,
         occCite, rangeModelMetadata, raster, rgbif (>= 3.3.0), sp,
         terra, testthat, tools
@@ -44,7 +44,7 @@ URL: http://wallaceecomod.github.io/wallace/,
 Encoding: UTF-8
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2023-12-07 16:06:02 UTC; dlopezlozano
+Packaged: 2024-03-08 20:02:46 UTC; dlopezlozano
 Author: Jamie M. Kass [aut],
   Gonzalo E. Pinilla-Buitrago [aut],
   Andrea Paz [aut],
@@ -65,4 +65,4 @@ Author: Jamie M. Kass [aut],
   Robert Muscarella [ctb]
 Maintainer: Mary E. Blair <mblair1@amnh.org>
 Repository: CRAN
-Date/Publication: 2023-12-07 17:30:02 UTC
+Date/Publication: 2024-03-09 01:20:02 UTC

@@ -1,6 +1,6 @@
-030958405c39c61424e7e2b7d4e9bb45 *DESCRIPTION
+fc7394be534e4d7a22ed8a6063449eda *DESCRIPTION
 426946d59df3eb07bcb1969d95d82dd5 *NAMESPACE
-5db8c584fb7ee488e03d73bd914d8273 *NEWS.md
+3cb6aa6c373225258055248d85e0b715 *NEWS.md
 1be9e4c2598de9c6391bd35b962c3bf5 *R/custom_modules.R
 3390342a1b5103b5575678946ca1d087 *R/envs_ecoClimate.R
 65a430173b98ff7df18561f9f8179f8d *R/envs_userEnvs.R
@@ -8,7 +8,7 @@ aacab7949543f215b5c0514589051064 *R/envs_worldclim.R
 b4df4fe6170dc8dc0920ba60cdaeeb48 *R/espace_nicheOv.R
 2365f287c403c1e8cc98899e5f3e0601 *R/espace_occDens.R
 e33dd3be7bf19c5ba9498c2463c264e7 *R/espace_pca.R
-29b9c4993eb605caf1b10e409a634903 *R/helper_functions.R
+b31b8bec7463539dc0a8e31fdb5624c0 *R/helper_functions.R
 6681b82897666186ea05a8ad30ab53ab *R/model_bioclim.R
 8e437a84ae4d9226498cd71754c05dec *R/model_maxent.R
 a8eeffae7179c43f4b8ced0cbfe90876 *R/occs_paleoDb.R
@@ -29,10 +29,10 @@ b27a8dc87640dd57a001a3c416875c59 *R/vis_bioclimPlot.R
 31fef9257e4bcfe9a4427b035523033f *R/xfer_area.R
 071afd61fc8a1fff52a0f1931f755fca *R/xfer_draw.R
 093efbca3a4b1a4b612122e895cd9246 *R/xfer_mess.R
-fada09be8d7199ff7baf47de046b36cd *R/xfer_time.R
+4690400084f848a7976e6d85cf037551 *R/xfer_time.R
 09c9cfb45eb90c4d55db907e08d5060e *R/xfer_userEnvs.R
 bfb4c9d8cacf07b9084d906795d1e7be *R/xfer_userExtent.R
-c98974d32ae71e34638a5b840005ac5f *README.md
+4c90c0e71d0407737a49f1bee7cf0c9d *README.md
 ab7da731d62250010ab9f0eaedc8fe14 *inst/CITATION
 05f2106e82bc9ecd6abfad0b12c8633c *inst/extdata/Bassaricyon_alleni.csv
 5ba3897c20dace4b12475da3e3753938 *inst/extdata/Bassaricyon_alleni_bgPoints.csv
@@ -67,12 +67,12 @@ dc83895eebc84ac2be63857d084d602b *inst/shiny/Rmd/gtext_poccs.Rmd
 90222ae7570de964f00fb7d000a10dda *inst/shiny/Rmd/gtext_vis.Rmd
 18cb534498417dbd605067c0a9265a1f *inst/shiny/Rmd/gtext_xfer.Rmd
 f7533c1389c7bbff52d292bb344e391f *inst/shiny/Rmd/references.Rmd
-6e24cf325ef94fcf3c8987b2325e39a6 *inst/shiny/Rmd/text_about.Rmd
+81a238af8032eb197c5ddf00d0666507 *inst/shiny/Rmd/text_about.Rmd
 c0a876082b36de5d822dfa13ae167aa9 *inst/shiny/Rmd/text_how_to_use.Rmd
-9c0ded6a57a52059de8959b4596f9d89 *inst/shiny/Rmd/text_intro_tab.Rmd
+c190277c325f382523adb2ee6cb4196e *inst/shiny/Rmd/text_intro_tab.Rmd
 6bb40b636949c8b4d0ba2cac54bf320c *inst/shiny/Rmd/text_loadsesh.Rmd
-0e492883fbfceaa1a9f6cb75cb71bbf4 *inst/shiny/Rmd/text_team.Rmd
-2529f0b80af582d2d64bc2dc35fc0905 *inst/shiny/Rmd/userReport_intro.Rmd
+a84af3322887422298c75f645a111751 *inst/shiny/Rmd/text_team.Rmd
+31bcb04615994b57d7402e6254afeb87 *inst/shiny/Rmd/userReport_intro.Rmd
 eae30f7b10601767e5342d26e54f943e *inst/shiny/Rmd/userReport_multSpecies.Rmd
 fe56a7074b4d7d5c7343f34e0331cf1f *inst/shiny/Rmd/userReport_species.Rmd
 3076facf832ab8d3fd50db76607cfd47 *inst/shiny/global.R
@@ -116,7 +116,7 @@ ab28507aef72626552f52636d905959c *inst/shiny/modules/occs_paleoDb.yml
 077e747c47b47354b11d24885804109b *inst/shiny/modules/occs_queryDb.R
 8bea66e77de9a25f1f87a88fc33de678 *inst/shiny/modules/occs_queryDb.Rmd
 63b0053c69b05d9771fe8e1554afc285 *inst/shiny/modules/occs_queryDb.md
-27b52c01f5c179315bad98ee638b7bb1 *inst/shiny/modules/occs_queryDb.yml
+7554dfefd7efce1040de998d1139b696 *inst/shiny/modules/occs_queryDb.yml
 100390b4dc552b4a5194176c14c66857 *inst/shiny/modules/occs_userOccs.R
 d9a9e7f9e1921d82039f5991d45e5b56 *inst/shiny/modules/occs_userOccs.Rmd
 f290ee6f5bed7ec430f34f3cf87f6de8 *inst/shiny/modules/occs_userOccs.md
@@ -189,7 +189,7 @@ a34383ab8b0f27be012b52e0dd1349f0 *inst/shiny/modules/xfer_mess.R
 12fe66d4545070713576d5eb6e74c7bf *inst/shiny/modules/xfer_mess.Rmd
 adac993043fa6a05755a3d8dc172a26f *inst/shiny/modules/xfer_mess.md
 53c14b7ac96f482450a5d16fe2114b43 *inst/shiny/modules/xfer_mess.yml
-3662bd8c39ae31fbe2cd737274e5516f *inst/shiny/modules/xfer_time.R
+d23fb9f66de97c22eed1799d638374fa *inst/shiny/modules/xfer_time.R
 9d17c805b1d4101f828682ae5d7f0cbf *inst/shiny/modules/xfer_time.Rmd
 d299794da8e186b213957b5ad3fcbe7e *inst/shiny/modules/xfer_time.md
 6a8b8cb5aea9f6bc61040cb4c329761c *inst/shiny/modules/xfer_time.yml
@@ -211,10 +211,11 @@ b9a38753169a86526acabc28a1c0b769 *inst/shiny/www/img/brianM.jpeg
 39537f8d731379306a21af6f29cf236d *inst/shiny/www/img/bruno.png
 da1235fb007a2d794fd376701f60d6db *inst/shiny/www/img/ccny_logo.jpg
 fe76b8e77095c845a1a264a35329cf99 *inst/shiny/www/img/cory.png
+6b04d8cdeaa23df5e3aa7593d6e245d0 *inst/shiny/www/img/daniel.jpeg
 8360b396892a43a8a6a274a231f975ac *inst/shiny/www/img/dean.png
 f5bfeef93222e468cbfb02306f6f0882 *inst/shiny/www/img/gc_logo.jpg
 c3205337657ebe189194806b09b8bd59 *inst/shiny/www/img/gonzalo.png
-7ad610cfc386f44a626020f05fcf7408 *inst/shiny/www/img/hannahO.png
+d355c02ab0865d73541651e8d1557708 *inst/shiny/www/img/hannahO.jpeg
 8cd95faf27000f6b77e22547c328359c *inst/shiny/www/img/jamie.jpg
 e8feb29cd1cd2e3a2e617d7f8efde786 *inst/shiny/www/img/mary.png
 78a8fb01de12fbd4feea9873a9c18dbb *inst/shiny/www/img/matt.png
@@ -225,7 +226,7 @@ e0a933343ef387e9ec94c2bba9813769 *inst/shiny/www/img/olivier.jpeg
 a61abadaddb2abe80dc73ef639b43802 *inst/shiny/www/img/sarah.png
 f3d9b159c077c6b848bd76e16282b199 *inst/shiny/www/img/uah.jpg
 6b9ffd80872d1e560f87047a5facde2b *inst/shiny/www/img/ufg.jpg
-10ef815874357d2e6494e7e237bb2712 *inst/shiny/www/img/valentina.png
+ba27d67c5789f3f43cf774b2e76c216e *inst/shiny/www/img/valentina.jpeg
 3e178f2488ab3a101f4ffc5e6b16d74a *inst/shiny/www/js/shinyjs-funcs.js
 6a290be00c1e90f396182644dd363fe4 *inst/shiny/www/logo.png
 d2fcf80bacf847c2f66e65c319820d3a *man/clearAll.Rd
@@ -274,7 +275,7 @@ f037b186de290ba540384d0b8afc925c *man/write_csv_robust.Rd
 547c1b031b44d692c3d83d002ed5ad67 *man/xfer_area.Rd
 0da6021ffce944b1360b0e4d640a844a *man/xfer_draw.Rd
 10f767f53e8d3eb33b27c9273777d920 *man/xfer_mess.Rd
-42b3e6ccd44785a66dc2b641e8d5c585 *man/xfer_time.Rd
+890d94b462a24f39fba77f9baff5bbdd *man/xfer_time.Rd
 58e1824ae50c86e29c59c45620c8158b *man/xfer_userEnvs.Rd
 5743c860fa915c75e201fab192f9c37d *man/xfer_userExtent.Rd
 5e0664d3d92d530b3aa00157645da36f *man/zoom2Occs.Rd
@@ -295,7 +296,7 @@ ab9dc61d22bbba6ea3d019b1a0c5e9a8 *tests/testthat/test_espace_pca.R
 f3d9bca555bf86f8c229917870397b2f *tests/testthat/test_model_bioclim.R
 fd96ba83195476a54d360eb0fd49732f *tests/testthat/test_model_maxent.R
 69d7f9035c890bbc5be9a8e5c8a71242 *tests/testthat/test_occs_paleoDb.R
-571995997f80df1d91f047548e9c334e *tests/testthat/test_occs_queryDb.R
+3568231b88c815bd8161f054ac1f72f2 *tests/testthat/test_occs_queryDb.R
 1f039a9c8806c598227bf8bc53c1d79b *tests/testthat/test_occs_userOccs.R
 d03bc4378dd4e0c9d0477f4e239a90c3 *tests/testthat/test_part_partitionOccs.R
 2b35985535768bf16bb9ec1b8e32c782 *tests/testthat/test_penvs_bgExtent.R
