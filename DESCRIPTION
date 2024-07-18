@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.1.2
-Date: 2024-03-08
+Version: 2.1.3
+Date: 2024-07-18
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -12,30 +12,30 @@ Description: The 'shiny' application Wallace is a modular platform for
     most package functionality can be found on the package's GitHub Pages 
     website: <https://wallaceecomod.github.io/wallace/articles/tutorial-v2.html>.
 Authors@R: 
-    c(person("Jamie M.", "Kass", email = "jamie.kass@oist.jp", role = "aut"),
+    c(person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
+    person("Jamie M.", "Kass", email = "jamie.m.kass@gmail.com", role = "aut"),
     person("Gonzalo E.", "Pinilla-Buitrago", email = "gepinillab@gmail.com", role = "aut"),
-	 	person("Andrea", "Paz", email = "paz.andreita@gmail.com", role = "aut"),
-	 	person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
-	 	person("Valentina", "Grisales-Betancur", email = "vgrisale@eafit.edu.co", role = "aut"),
-	  person("Dean", "Attali", email = "daattali@gmail.com", role = "aut"),
-	  person("Matthew E.", "Aiello-Lammens", email = "matt.lammens@gmail.com", role = "aut"),
-	  person("Cory", "Merow", email = "corymerow@gmail.com", role = "aut"),
-	  person("Mary E.", "Blair", email = "mblair1@amnh.org", role = c("aut", "cre")),
-	  person("Robert P.", "Anderson", email = "randerson@ccny.cuny.edu", role = "aut"),
-	  person("Sarah I.", "Meenan", email = "sarah.meenan@gmail.com", role = "ctb"),
-	  person("Olivier", "Broennimann", email = "olivier.broennimann@unil.ch", role = "ctb"),
-	  person("Peter J.", "Galante", email = "pgalante@amnh.org", role = "ctb"),
-	  person("Brian S.", "Maitner", email = "bmaitner@gmail.com", role = "ctb"),
-	  person("Hannah L.", "Owens", email = "hannah.owens@gmail.com", role = "ctb"),
-	  person("Sara", "Varela", email = "sara_varela@yahoo.com", role = "ctb"),
-	  person("Bruno", "Vilela", email = "bvilela@wustl.edu", role = "ctb"),
-	  person("Robert", "Muscarella", email = "bob.muscarella@gmail.com", role = "ctb"))
+    person("Andrea", "Paz", email = "paz.andreita@gmail.com", role = "aut"),
+    person("Valentina", "Grisales-Betancur", email = "vgrisale@eafit.edu.co", role = "aut"),
+    person("Dean", "Attali", email = "daattali@gmail.com", role = "aut"),
+    person("Matthew E.", "Aiello-Lammens", email = "matt.lammens@gmail.com", role = "aut"),
+    person("Cory", "Merow", email = "corymerow@gmail.com", role = "aut"),
+    person("Mary E.", "Blair", email = "mblair1@amnh.org", role = c("aut", "cre")),
+    person("Robert P.", "Anderson", email = "randerson@ccny.cuny.edu", role = "aut"),
+    person("Sarah I.", "Meenan", email = "sarah.meenan@gmail.com", role = "ctb"),
+    person("Olivier", "Broennimann", email = "olivier.broennimann@unil.ch", role = "ctb"),
+    person("Peter J.", "Galante", email = "pgalante@amnh.org", role = "ctb"),
+    person("Brian S.", "Maitner", email = "bmaitner@gmail.com", role = "ctb"),
+    person("Hannah L.", "Owens", email = "hannah.owens@gmail.com", role = "ctb"),
+    person("Sara", "Varela", email = "sara_varela@yahoo.com", role = "ctb"),
+    person("Bruno", "Vilela", email = "bvilela@wustl.edu", role = "ctb"),
+    person("Robert", "Muscarella", email = "bob.muscarella@gmail.com", role = "ctb"))
 Depends: R (>= 3.5.0), shiny (>= 1.6.0), leaflet (>= 2.0.2)
 Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat (>= 4.0.0), ENMeval (>=
-        2.0.3), knitcitations, leafem, leaflet.extras (>= 1.0.0),
-        magrittr, markdown, methods, RColorBrewer, rJava, rlang,
-        rmarkdown, sf, shinyalert, shinyjs, shinyWidgets (>= 0.6.0),
-        spocc (>= 1.2.0), spThin, zip
+        2.0.3), geodata, knitcitations, leafem, leaflet.extras (>=
+        1.0.0), magrittr, markdown, methods, RColorBrewer, rJava,
+        rlang, rmarkdown, sf, shinyalert, shinyjs, shinyWidgets (>=
+        0.6.0), spocc (>= 1.2.0), spThin, zip
 Suggests: ade4, BIEN, dismo, glue, jsonlite, knitr, mapview, maxnet,
         occCite, rangeModelMetadata, raster, rgbif (>= 3.3.0), sp,
         terra, testthat, tools
@@ -44,11 +44,11 @@ URL: http://wallaceecomod.github.io/wallace/,
 Encoding: UTF-8
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2024-03-08 20:02:46 UTC; dlopezlozano
-Author: Jamie M. Kass [aut],
+Packaged: 2024-07-18 21:57:39 UTC; bajohnson135
+Author: Bethany A. Johnson [aut],
+  Jamie M. Kass [aut],
   Gonzalo E. Pinilla-Buitrago [aut],
   Andrea Paz [aut],
-  Bethany A. Johnson [aut],
   Valentina Grisales-Betancur [aut],
   Dean Attali [aut],
   Matthew E. Aiello-Lammens [aut],
@@ -65,4 +65,4 @@ Author: Jamie M. Kass [aut],
   Robert Muscarella [ctb]
 Maintainer: Mary E. Blair <mblair1@amnh.org>
 Repository: CRAN
-Date/Publication: 2024-03-09 01:20:02 UTC
+Date/Publication: 2024-07-18 22:30:02 UTC
