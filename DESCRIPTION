@@ -1,6 +1,6 @@
 Package: wallace
-Version: 2.2.0
-Date: 2025-03-06
+Version: 2.2.1
+Date: 2026-05-05
 Title: A Modular Platform for Reproducible Modeling of Species Niches
         and Distributions
 Description: The 'shiny' application Wallace is a modular platform for 
@@ -12,8 +12,8 @@ Description: The 'shiny' application Wallace is a modular platform for
     most package functionality can be found on the package's GitHub Pages 
     website: <https://wallaceecomod.github.io/wallace/articles/tutorial-v2.html>.
 Authors@R: 
-    c(person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
-    person("Daniel F.", "Lopez-Lozano", email = "dlopezlozano@amnh.org", role = "aut"),
+    c(person("Daniel F.", "Lopez-Lozano", email = "dlopezlozano@amnh.org", role = "aut"),
+    person("Bethany A.", "Johnson", email = "bjohnso005@citymail.cuny.edu", role = "aut"),
     person("Jamie M.", "Kass", email = "jamie.m.kass@gmail.com", role = "aut"),
     person("Gonzalo E.", "Pinilla-Buitrago", email = "gepinillab@gmail.com", role = "aut"),
     person("Andrea", "Paz", email = "paz.andreita@gmail.com", role = "aut"),
@@ -33,21 +33,21 @@ Authors@R:
     person("Robert", "Muscarella", email = "bob.muscarella@gmail.com", role = "ctb"))
 Depends: R (>= 3.5.0), shiny (>= 1.6.0), leaflet (>= 2.0.2)
 Imports: dplyr (>= 1.0.2), DT (>= 0.5), ecospat (>= 4.0.0), ENMeval (>=
-        2.0.5), geodata, knitcitations, leafem, leaflet.extras (>=
-        1.0.0), magrittr, markdown, methods, RColorBrewer, rJava,
-        rlang, rmarkdown, sf, shinyalert, shinyjs, shinyWidgets (>=
-        0.6.0), spocc (>= 1.2.0), spThin, zip
+        2.0.5), geodata, htmltools, knitcitations, leafem, magrittr,
+        markdown, RColorBrewer, rJava, rlang, rmarkdown, sf,
+        shinyalert, shinyjs, shinyWidgets (>= 0.6.0), spocc (>= 1.2.0),
+        spThin, zip
 Suggests: ade4, BIEN, dismo, glue, jsonlite, knitr, mapview, maxnet,
         occCite, predicts, rangeModelMetadata, raster, rgbif (>=
-        3.3.0), sp, terra, testthat, tools
+        3.3.0), sp, terra (>= 1.9-11), testthat, tools
 License: GPL-3
-URL: http://wallaceecomod.github.io/wallace/,
+URL: https://wallaceecomod.github.io/wallace/
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 NeedsCompilation: no
-Packaged: 2025-03-06 15:39:59 UTC; bajohnson135
-Author: Bethany A. Johnson [aut],
-  Daniel F. Lopez-Lozano [aut],
+Packaged: 2026-05-07 11:50:38 UTC; dlopezlozano
+Author: Daniel F. Lopez-Lozano [aut],
+  Bethany A. Johnson [aut],
   Jamie M. Kass [aut],
   Gonzalo E. Pinilla-Buitrago [aut],
   Andrea Paz [aut],
@@ -67,4 +67,4 @@ Author: Bethany A. Johnson [aut],
   Robert Muscarella [ctb]
 Maintainer: Mary E. Blair <mblair1@amnh.org>
 Repository: CRAN
-Date/Publication: 2025-03-06 17:40:02 UTC
+Date/Publication: 2026-05-07 14:40:54 UTC
